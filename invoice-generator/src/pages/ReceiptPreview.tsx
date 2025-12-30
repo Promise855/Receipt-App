@@ -81,9 +81,9 @@ export default function ReceiptPreview() {
               <td className="border border-black px-2 py-1">{item.name}</td>
               <td className="border border-black px-2 py-1">{item.description}</td>
               <td className="border border-black px-2 py-1 text-xs">
-                {item.details.itemSN && <div>S/N: {item.details.itemSN}</div>}
-                {item.details.itemMN && <div>M/N: {item.details.itemMN}</div>}
-                {item.details.itemIMEI && <div>IMEI: {item.details.itemIMEI}</div>}
+                {item.details.itemSN && <div><strong>S/N:</strong> {item.details.itemSN}</div>}
+                {item.details.itemMN && <div><strong>M/N:</strong> {item.details.itemMN}</div>}
+                {item.details.itemIMEI && <div><strong>IMEI:</strong>   {item.details.itemIMEI}</div>}
                 {!item.details.itemSN && !item.details.itemMN && !item.details.itemIMEI && '-'}
               </td>
               <td className="border border-black px-2 py-1 text-center">{item.qty}</td>
