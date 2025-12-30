@@ -1,0 +1,9 @@
+@import "tailwindcss";
+
+@page {
+  margin: 1cm;
+}
+
+.page-break-before {
+  page-break-before: always;
+}
