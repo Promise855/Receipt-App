@@ -12,7 +12,7 @@ function App() {
     <div className="min-h-screen bg-[#f8f9fa] py-8 px-4">
       <div className="max-w-6xl mx-auto">
         <div className="bg-white rounded-lg shadow-lg p-8 relative">
-          <div className="absolute bottom-8 right-8">
+          <div className="absolute top-8 right-8">
             <button
               onClick={() => setShowPast(true)}
               className="px-6 py-4 bg-[#022142] text-white rounded-lg hover:bg-[#053f7c] transition"
