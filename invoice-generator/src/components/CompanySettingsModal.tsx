@@ -1,3 +1,5 @@
+// src/components/CompanySettingsModal.tsx
+
 import { useState } from 'react';
 import { useCompanyStore } from '../stores/useCompanyStore';
 
@@ -24,58 +26,96 @@ export default function CompanySettingsModal({ onClose }: Props) {
 
   return (
     <div className="glass-backdrop">
-      <div className="glass-modal">
-        <h2 className="text-2xl font-bold text-[#022142] mb-6">Company Settings</h2>
+      <div className="glass-modal max-w-2xl">
+        <h2 className="text-3xl font-bold text-[#022142] mb-8 text-center">
+          Company Settings (Manager Only)
+        </h2>
 
-        {/* Logo Upload */}
-        <div className="mb-6 text-center">
-          <img 
-            src={previewLogo} 
-            alt="Company Logo" 
-            className="mx-auto mb-4 w-32 h-32 object-contain border-2 border-gray-500 rounded"
+        {/* Logo Upload & Preview */}
+        <div className="text-center mb-8">
+          <img
+            src={previewLogo || '/img/Octa-logo.png'}
+            alt="Company Logo Preview"
+            className="mx-auto mb-6 w-40 h-40 object-contain rounded-xl border-4 border-gray-300 shadow-lg"
           />
-          <label className="block">
-            <span className="px-6 py-3 bg-[#022142] text-white rounded-lg cursor-pointer hover:bg-[#053f7c] transition">
-              Change Logo
-            </span>
-            <input type="file" accept="image/*" onChange={handleLogoChange} className="hidden" />
+          <label className="inline-block px-8 py-4 bg-[#022142] text-white text-lg font-semibold rounded-xl cursor-pointer hover:bg-[#053f7c] transition shadow-md">
+            Change Logo
+            <input
+              type="file"
+              accept="image/*"
+              onChange={handleLogoChange}
+              className="hidden"
+            />
           </label>
         </div>
 
-        <div className="space-y-4">
-          <textarea
-            value={address}
-            onChange={(e) => setSettings({ address: e.target.value })}
-            className="w-full px-4 py-2 border rounded-lg h-24"
-            placeholder="Full Address"
-          />
-          <input
-            type="text"
-            value={phone}
-            onChange={(e) => setSettings({ phone: e.target.value })}
-            className="w-full px-4 py-2 border rounded-lg"
-            placeholder="Phone"
-          />
-          <input
-            type="email"
-            value={email1}
-            onChange={(e) => setSettings({ email1: e.target.value })}
-            className="w-full px-4 py-2 border rounded-lg"
-            placeholder="Email 1"
-          />
-          <input
-            type="email"
-            value={email2}
-            onChange={(e) => setSettings({ email2: e.target.value })}
-            className="w-full px-4 py-2 border rounded-lg"
-            placeholder="Email 2"
-          />
+        <div className="space-y-6">
+          <div>
+            <label className="block text-lg font-bold text-[#022142] mb-2">
+              Company Name
+            </label>
+            <input
+              type="text"
+              value={name}
+              onChange={(e) => setSettings({ name: e.target.value })}
+              className="w-full px-6 py-4 text-lg bg-white rounded-xl border-2 border-gray-300 focus:border-[#022142] focus:outline-none text-gray-900"
+            />
+          </div>
+
+          <div>
+            <label className="block text-lg font-bold text-[#022142] mb-2">
+              Address
+            </label>
+            <textarea
+              value={address}
+              onChange={(e) => setSettings({ address: e.target.value })}
+              rows={3}
+              className="w-full px-6 py-4 text-lg bg-white rounded-xl border-2 border-gray-300 focus:border-[#022142] focus:outline-none text-gray-900 resize-none"
+            />
+          </div>
+
+          <div>
+            <label className="block text-lg font-bold text-[#022142] mb-2">
+              Phone Number
+            </label>
+            <input
+              type="text"
+              value={phone}
+              onChange={(e) => setSettings({ phone: e.target.value })}
+              className="w-full px-6 py-4 text-lg bg-white rounded-xl border-2 border-gray-300 focus:border-[#022142] focus:outline-none text-gray-900"
+            />
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+            <div>
+              <label className="block text-lg font-bold text-[#022142] mb-2">
+                Email 1
+              </label>
+              <input
+                type="email"
+                value={email1}
+                onChange={(e) => setSettings({ email1: e.target.value })}
+                className="w-full px-6 py-4 text-lg bg-white rounded-xl border-2 border-gray-300 focus:border-[#022142] focus:outline-none text-gray-900"
+              />
+            </div>
+            <div>
+              <label className="block text-lg font-bold text-[#022142] mb-2">
+                Email 2
+              </label>
+              <input
+                type="email"
+                value={email2}
+                onChange={(e) => setSettings({ email2: e.target.value })}
+                className="w-full px-6 py-4 text-lg bg-white rounded-xl border-2 border-gray-300 focus:border-[#022142] focus:outline-none text-gray-900"
+              />
+            </div>
+          </div>
         </div>
 
-        <div className="mt-8 flex justify-end gap-4">
+        <div className="mt-10 text-center">
           <button
             onClick={onClose}
-            className="px-6 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700"
+            className="px-12 py-5 bg-gray-600 text-white text-xl font-bold rounded-xl hover:bg-gray-700 transition shadow-lg"
           >
             Close
           </button>

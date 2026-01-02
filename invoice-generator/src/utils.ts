@@ -47,3 +47,24 @@ export function numberToWords(num: number): string {
   let decimalWords = decimalPart > 0 ? convertGroupToWords(decimalPart) + " Kobo" : "";
   return integerWords + " Naira" + (decimalWords ? " and " + decimalWords : "") + " Only";
 }
+
+// Simple but effective client-side hash (good enough for shop PIN)
+//export function hashPin(pin: string): string {
+//  let hash = 0;
+//  for (let i = 0; i < pin.length; i++) {
+//    const char = pin.charCodeAt(i);
+//    hash = (hash << 5) - hash + char;
+//    hash = hash & hash; // Convert to 32bit integer
+//  }
+//  return hash.toString();
+//}
+
+// Simple deterministic hash for 4-digit PIN
+// Good enough for client-side shop use (not banking-level, but prevents plain text)
+export function hashPin(pin: string): string {
+  let hash = 5381;
+  for (let i = 0; i < pin.length; i++) {
+    hash = (hash * 33) ^ pin.charCodeAt(i);
+  }
+  return hash >>> 0; // Unsigned 32-bit integer
+}

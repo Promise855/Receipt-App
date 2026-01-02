@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useInvoiceStore } from '../stores/useInvoiceStore';
 import { db } from '../lib/db';
 import PastReceiptsModal from './PastReceiptsModal';
+import { useCurrentUserStore } from '../stores/useCurrentUserStore';
 
 export default function ActionBar() {
 const [showPast, setShowPast] = useState(false);
@@ -22,6 +23,12 @@ const [showPast, setShowPast] = useState(false);
 
   const confirmGenerate = async () => {
     setShowConfirm(false);
+    const currentUser = useCurrentUserStore.getState().currentUser;
+
+    if (!currentUser) {
+        alert('No User Logged In');
+        return;
+    }
 
     try {
       const plainData = {
@@ -45,6 +52,8 @@ const [showPast, setShowPast] = useState(false);
         subTotal: state.subTotal,
         total: state.total,
         amountInWords: state.amountInWords,
+        generatedByStaffId: currentUser.id,
+        generatedByName: currentUser.name,
       };
 
       await db.receipts.add({
@@ -53,6 +62,8 @@ const [showPast, setShowPast] = useState(false);
         invoiceNumber: state.invoiceNumber,
         customerName: state.customerName,
         total: state.total,
+        generatedByStaffId: currentUser.id,
+        generatedByName: currentUser.name,
       });
 
       localStorage.setItem('currentReceipt', JSON.stringify(plainData));
@@ -61,10 +72,10 @@ const [showPast, setShowPast] = useState(false);
       if (!previewWindow) {
         alert('Please allow popups to view the receipt.');
       } 
-    } catch (error) {
-      console.error('Save failed:', error);
-      alert('❌ Failed to save receipt. Check console.');
-    }
+        } catch (error) {
+            console.error('Save failed:', error);
+            alert('❌ Failed to save receipt. Check console.');
+        }
   };
 
   return (

@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 
 type CompanySettings = {
-  logo: string; // base64 or URL
+  logo: string; 
   address: string;
   phone: string;
   email1: string;
