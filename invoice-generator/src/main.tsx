@@ -3,6 +3,9 @@ import ReactDOM from 'react-dom/client'
 import App from './App.tsx'
 import ReceiptPreview from './pages/ReceiptPreview.tsx'
 import './index.css'
+import { useCompanyStore } from './stores/useCompanyStore';
+
+useCompanyStore.getState().loadFromStorage();
 
 const path = window.location.pathname;
 

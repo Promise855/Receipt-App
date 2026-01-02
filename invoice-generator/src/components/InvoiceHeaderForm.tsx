@@ -52,81 +52,85 @@ export default function InvoiceHeaderForm() {
       </h2>
 
       <form onChange={onChange} className="space-y-6">
-        <div>
-          <label className="block text-base font-semibold mb-1.5">
-            Customer Name:
-          </label>
-          <input
-            {...register('customerName')}
-            type="text"
-            required
-            className="w-full px-3 py-2.5 text-base border border-[#ced4da] rounded-md focus:border-[#50a5ff] focus:outline-none transition"
-            placeholder="Enter customer's full name"
-          />
-          {errors.customerName && (
-            <p className="mt-1 text-sm text-red-600">{errors.customerName.message}</p>
-          )}
-        </div>
+        <div className='grid grid-cols-1 sm:grid-cols-2 gap-10'>  
+          <div>
+            <label className="block text-sm sm:text-base font-semibold mb-1.5">
+              Customer Name:
+            </label>
+            <input
+              {...register('customerName')}
+              type="text"
+              required
+              className="w-full px-3 py-2.5 text-base border border-[#ced4da] rounded-md focus:border-[#50a5ff] focus:outline-none transition"
+              placeholder="Enter customer's full name"
+            />
+            {errors.customerName && (
+              <p className="mt-1 text-sm text-red-600">{errors.customerName.message}</p>
+            )}
+          </div>
 
-        <div>
-          <label className="block text-base font-semibold mb-1.5">
-            Phone Number:
-          </label>
-          <input
-            {...register('phoneNumber')}
-            type="text"
-            required
-            className="w-full px-3 py-2.5 text-base border border-[#ced4da] rounded-md focus:border-[#50a5ff] focus:outline-none transition"
-            placeholder="+2349155743615"
-          />
-          {errors.phoneNumber && (
-            <p className="mt-1 text-sm text-red-600">{errors.phoneNumber.message}</p>
-          )}
-        </div>
+          <div>
+            <label className="block text-sm sm:text-base font-semibold mb-1.5">
+              Phone Number:
+            </label>
+            <input
+              {...register('phoneNumber')}
+              type="text"
+              required
+              className="w-full px-3 py-2.5 text-base border border-[#ced4da] rounded-md focus:border-[#50a5ff] focus:outline-none transition"
+              placeholder="+2349155743615"
+            />
+            {errors.phoneNumber && (
+              <p className="mt-1 text-sm text-red-600">{errors.phoneNumber.message}</p>
+            )}
+          </div>
 
-        <div>
-          <label className="block text-base font-semibold mb-1.5">
-            INVOICE NO:
-          </label>
-          <input
-            {...register('invoiceNumber')}
-            type="text"
-            required
-            className="w-full px-3 py-2.5 text-base border border-[#ced4da] rounded-md focus:border-[#50a5ff] focus:outline-none transition uppercase"
-            placeholder="INV-001"
-          />
-          {errors.invoiceNumber && (
-            <p className="mt-1 text-sm text-red-600">{errors.invoiceNumber.message}</p>
-          )}
-        </div>
+          <div>
+            <label className="block text-sm sm:text-base font-semibold mb-1.5">
+              INVOICE NO:
+            </label>
+            <input
+              {...register('invoiceNumber')}
+              type="text"
+              required
+              className="w-full px-3 py-2.5 text-base border border-[#ced4da] rounded-md focus:border-[#50a5ff] focus:outline-none transition uppercase"
+              placeholder="INV-001"
+            />
+            {errors.invoiceNumber && (
+              <p className="mt-1 text-sm text-red-600">{errors.invoiceNumber.message}</p>
+            )}
+          </div>
 
-        <div>
-          <label className="block text-base font-semibold mb-1.5">Date:</label>
-          <input
-            {...register('date')}
-            type="date"
-            required
-            className="w-full px-3 py-2.5 text-base border border-[#ced4da] rounded-md focus:border-[#50a5ff] focus:outline-none transition"
-          />
-          {errors.date && (
-            <p className="mt-1 text-sm text-red-600">{errors.date.message}</p>
-          )}
-        </div>
+          <div>
+            <label className="block text-sm sm:text-base font-semibold mb-1.5">
+              Date:
+            </label>
+            <input
+              {...register('date')}
+              type="date"
+              required
+              className="w-full px-3 py-2.5 text-base border border-[#ced4da] rounded-md focus:border-[#50a5ff] focus:outline-none transition"
+            />
+            {errors.date && (
+              <p className="mt-1 text-sm text-red-600">{errors.date.message}</p>
+            )}
+          </div>
 
-        <div>
-          <label className="block text-base font-semibold mb-1.5">
-            Payment Mode:
-          </label>
-          <select
-            {...register('paymentMode')}
-            required
-            className="w-full px-3 py-2.5 text-base border border-[#ced4da] rounded-md focus:border-[#50a5ff] focus:outline-none transition"
-          >
-            <option value="Bank Transfer">Bank Transfer</option>
-            <option value="Cash">Cash</option>
-            <option value="Card Payment">Card Payment</option>
-            <option value="Not Paid">Not Paid</option>
-          </select>
+          <div>
+            <label className="block text-sm sm:text-base font-semibold mb-1.5">
+              Payment Mode:
+            </label>
+            <select
+              {...register('paymentMode')}
+              required
+              className="w-full px-3 py-2.5 text-base border border-[#ced4da] rounded-md focus:border-[#50a5ff] focus:outline-none transition"
+            >
+              <option value="Bank Transfer">Bank Transfer</option>
+              <option value="Cash">Cash</option>
+              <option value="Card Payment">Card Payment</option>
+              <option value="Not Paid">Not Paid</option>
+            </select>
+          </div>
         </div>
       </form>
     </div>

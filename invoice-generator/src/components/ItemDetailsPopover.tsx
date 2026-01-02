@@ -26,8 +26,8 @@ export default function ItemDetailsPopover({ itemId, onClose }: Props) {
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg p-8 max-w-md w-full mx-4 shadow-2xl">
+    <div className="glass-backdrop">
+      <div className="glass-modal">
         <h3 className="text-xl font-semibold text-[#022142] mb-6">Item Details</h3>
 
         <div className="space-y-5">

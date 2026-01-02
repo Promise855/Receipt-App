@@ -65,8 +65,8 @@ export default function PastReceiptsModal({ onClose }: { onClose: () => void }) 
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg p-8 max-w-4xl w-full mx-4 max-h-[80vh] overflow-y-auto shadow-2xl">
+    <div className="glass-backdrop">
+      <div className="glass-modal max-w-4xl">
         <h2 className="text-2xl font-bold text-[#022142] mb-6">Past Receipts</h2>
 
         <div className="flex gap-4 mb-6">

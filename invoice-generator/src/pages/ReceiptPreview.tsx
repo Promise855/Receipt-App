@@ -1,7 +1,32 @@
 import { useEffect, useState } from 'react';
 import { numberToWords } from '../utils';
 
-type ReceiptData = any; // We'll type this properly later
+type ReceiptData = {
+  customerName: string;
+  phoneNumber: string;
+  invoiceNumber: string;
+  date: string;
+  paymentMode: string;
+  items: Array<{
+    id: string;
+    sn: number;
+    name: string;
+    description: string;
+    details: {
+      itemSN?: string;
+      itemMN?: string;
+      itemIMEI?: string;
+    };
+    qty: number;
+    unitPrice: number;
+    discount: number;
+    amount: number;
+  }>;
+  itemQty: number;
+  subTotal: number;
+  total: number;
+  amountInWords: string;
+};
 
 export default function ReceiptPreview() {
   const [receipt, setReceipt] = useState<ReceiptData | null>(null);
@@ -10,30 +35,56 @@ export default function ReceiptPreview() {
     // Try to get from localStorage (fallback)
     const data = localStorage.getItem('currentReceipt');
     if (data) {
-      const parsed = JSON.parse(data);
-      setReceipt(parsed);
-      localStorage.removeItem('currentReceipt'); // Clean up
+      try {
+        const parsed = JSON.parse(data);
+        setReceipt(parsed);
+        localStorage.removeItem('currentReceipt');
+      } catch (e) {
+        console.error('Failed to parse receipt data');
+      }
     }
-
-    // Add print trigger
-    const timer = setTimeout(() => {
-      window.print();
-    }, 800);
-
-    return () => clearTimeout(timer);
   }, []);
 
+  // Safe auto-print: only after receipt is loaded
+  useEffect(() => {
+    if (!receipt) return; // Do nothing if no data yet
+
+    const printTimer = setTimeout(() => {
+      window.print();
+    }, 2000); // 2 seconds delay for smooth rendering
+
+    return () => {
+      clearTimeout(printTimer);
+    };
+  }, [receipt]); // Triggers only when receipt becomes available
+
+  // Loading state
   if (!receipt) {
     return (
-      <div className="p-10 text-center">
-        <p>No receipt data found.</p>
+    <div className="max-w-4xl mx-auto p-8 bg-white min-h-screen flex flex-col items-center justify-center">
+      <div className="text-center">
+        <div className="text-6xl mb-4 animate-spin">⚡</div>
+        <h2 className="text-2xl font-bold text-[#022142] mb-4">Generating Receipt...</h2>
+        <p className="text-gray-600">Please wait while we prepare your receipt.</p>
       </div>
+    </div>
     );
   }
 
   return (
-    <div className="max-w-7xl mx-auto p-8 bg-white">
-      {/* Header */}
+    <div className="max-w-4xl mx-auto p-6 sm:p-8 print:p-4 print:max-w-full print:bg-white">
+      {/* Success Toast */}
+      <div className="print:hidden fixed top-4 left-1/2 -translate-x-1/2 bg-green-600 text-white px-8 py-4 rounded-xl shadow-2xl z-50 animate-toast">
+        <div className="flex items-center gap-3">
+          <span className="text-2xl">✅</span>
+          <div>
+            <strong className="text-lg">Receipt Generated Successfully!</strong>
+            <p className="text-sm opacity-90">
+              Invoice #{receipt.invoiceNumber} • ₦{receipt.total.toLocaleString('en-NG', { minimumFractionDigits: 2 })}
+            </p>
+          </div>
+        </div>
+      </div>
       <div className="text-center mb-8">
         <img 
             src="/img/Octa-logo.png" 
@@ -122,6 +173,14 @@ export default function ReceiptPreview() {
         <p className="mt-12 text-center font-bold italic text-sm">Our Partner in Tech Excellence</p>
         <p className="text-center font-bold italic text-sm">Thank you for contributing to the future!</p>
       </div>
+      <div className="text-center mt-8 print:hidden">
+      <button
+        onClick={() => window.print()}
+        className="px-8 py-3 bg-[#022142] text-white rounded-lg hover:bg-[#053f7c] transition shadow-md"
+      >
+        🖨️ Print Receipt
+      </button>
+    </div>
     </div>
   );
 }

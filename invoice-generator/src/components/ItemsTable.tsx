@@ -39,25 +39,25 @@ export default function ItemsTable() {
         type="button"
         onClick={addItem}
         id="addItem"
-        className="mb-6 px-5 py-2.5 bg-[#022142] text-white text-sm font-medium rounded-md hover:bg-[#053f7c] transition transform hover:scale-105"
+        className="mb-6 w-full sm:w-auto px-6 py-3 bg-[#022142] text-white text-sm sm:text-base font-medium rounded-md hover:bg-[#053f7c] transition -shadow-lg shadow-lg"
       >
         Add Item
       </button>
 
-      <div id="itemTable" className="overflow-x-auto">
-        <div className="table-wrapper">
-          <table className="w-full min-w-[800px] border-collapse">
+      <div id="itemTable" className="overflow-x-auto -mx-4 sm:-mx-0">
+        <div className="table-wrapper min-w-full sm:min-w-0">
+          <table className="w-full min-w-[900px] sm:min-w-0 border-collapse">
             <thead>
               <tr className="bg-[#f8f9fa]">
-                <th className="border border-[#dee2e6] px-3 py-2 text-left text-sm font-medium">S/N</th>
-                <th className="border border-[#dee2e6] px-3 py-2 text-left text-sm font-medium">Name</th>
-                <th className="border border-[#dee2e6] px-3 py-2 text-left text-sm font-medium">Item Description</th>
-                <th className="border border-[#dee2e6] px-3 py-2 text-left text-sm font-medium">Item Details</th>
-                <th className="border border-[#dee2e6] px-3 py-2 text-left text-sm font-medium">Qty</th>
-                <th className="border border-[#dee2e6] px-3 py-2 text-left text-sm font-medium">(₦) Unit Price</th>
-                <th className="border border-[#dee2e6] px-3 py-2 text-left text-sm font-medium">Discount (%)</th>
-                <th className="border border-[#dee2e6] px-3 py-2 text-left text-sm font-medium">Amount</th>
-                <th className="border border-[#dee2e6] px-3 py-2 text-left text-sm font-medium">Action</th>
+                <th className="border border-[#dee2e6] px-3 py-2 text-left text-xs sm:text-sm font-medium">S/N</th>
+                <th className="border border-[#dee2e6] px-3 py-2 text-left text-xs sm:text-sm font-medium">Name</th>
+                <th className="border border-[#dee2e6] px-3 py-2 text-left text-xs sm:text-sm font-medium">Item Description</th>
+                <th className="border border-[#dee2e6] px-3 py-2 text-left text-xs sm:text-sm font-medium">Item Details</th>
+                <th className="border border-[#dee2e6] px-3 py-2 text-left text-xs sm:text-sm font-medium">Qty</th>
+                <th className="border border-[#dee2e6] px-3 py-2 text-left text-xs sm:text-sm font-medium">(₦) Unit Price</th>
+                <th className="border border-[#dee2e6] px-3 py-2 text-left text-xs sm:text-sm font-medium">Discount (%)</th>
+                <th className="border border-[#dee2e6] px-3 py-2 text-left text-xs sm:text-sm font-medium">Amount</th>
+                <th className="border border-[#dee2e6] px-3 py-2 text-left text-xs sm:text-sm font-medium">Action</th>
               </tr>
             </thead>
             <tbody>
@@ -70,7 +70,7 @@ export default function ItemsTable() {
                 ) : (
                     items.map((item) => (
                     <tr key={item.id} className="hover:bg-[#f8f9fa]">
-                        <td className="border border-[#dee2e6] px-3 py-2">
+                        <td className="border border-[#dee2e6] px-3 py-2 text-xs sm:text-sm">
                         <input
                             type="text"
                             value={item.sn}
@@ -78,7 +78,7 @@ export default function ItemsTable() {
                             className="w-12 bg-transparent text-center"
                         />
                         </td>
-                        <td className="border border-[#dee2e6] px-3 py-2">
+                        <td className="border border-[#dee2e6] px-3 py-2 text-xs sm:text-sm">
                         <input
                             type="text"
                             value={item.name}
@@ -88,7 +88,7 @@ export default function ItemsTable() {
                             placeholder="Item name"
                         />
                         </td>
-                        <td className="border border-[#dee2e6] px-3 py-2">
+                        <td className="border border-[#dee2e6] px-3 py-2 text-xs sm:text-sm">
                         <input
                             type="text"
                             value={item.description}
@@ -98,7 +98,7 @@ export default function ItemsTable() {
                             placeholder="Description"
                         />
                         </td>
-                        <td className="border border-[#dee2e6] px-3 py-2 text-center">
+                        <td className="border border-[#dee2e6] px-3 py-2 text-xs sm:text-sm text-center">
                         <button
                             type="button"
                             onClick={() => openDetailsPopover(item.id)}
@@ -113,7 +113,7 @@ export default function ItemsTable() {
                             : 'Add Details'}
                         </button>
                         </td>
-                        <td className="border border-[#dee2e6] px-3 py-2">
+                        <td className="border border-[#dee2e6] px-3 py-2 text-xs sm:text-sm">
                         <input
                             type="number"
                             min="1"
@@ -123,7 +123,7 @@ export default function ItemsTable() {
                             className="w-16 px-2 py-1 text-center border border-gray-300 rounded"
                         />
                         </td>
-                        <td className="border border-[#dee2e6] px-3 py-2">
+                        <td className="border border-[#dee2e6] px-3 py-2 text-xs sm:text-sm">
                         <input
                             type="text"
                             value={item.unitPrice.toLocaleString()}
@@ -133,7 +133,7 @@ export default function ItemsTable() {
                             placeholder="0"
                         />
                         </td>
-                        <td className="border border-[#dee2e6] px-3 py-2">
+                        <td className="border border-[#dee2e6] px-3 py-2 text-xs sm:text-sm">
                         <input
                             type="number"
                             min="0"
@@ -144,10 +144,10 @@ export default function ItemsTable() {
                             className="w-20 px-2 py-1 text-center border border-gray-300 rounded"
                         />
                         </td>
-                        <td className="border border-[#dee2e6] px-3 py-2 text-right font-medium">
+                        <td className="border border-[#dee2e6] px-3 py-2 text-right text-xs sm:text-sm font-medium">
                         ₦{item.amount.toLocaleString('en-NG', { minimumFractionDigits: 2 })}
                         </td>
-                        <td className="border border-[#dee2e6] px-3 py-2 text-center">
+                        <td className="border border-[#dee2e6] px-3 py-2 text-center text-xs sm:text-sm">
                         <button
                             type="button"
                             onClick={() => removeItem(item.id)}
