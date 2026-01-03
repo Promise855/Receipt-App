@@ -22,17 +22,17 @@ function App() {
 
   useEffect(() => {
     const init = async () => {
-      await loadFromStorage(); // Load current user from local storage
+      await loadFromStorage();
 
-      if (currentUser) {
-        console.log('User logged in — syncing data from cloud...');
-        await fullSync(); // Pull latest receipts, staff, settings from Supabase
+      // Force pull from cloud on every load
+      if (navigator.onLine) {
+        await fullSync(); // or just pullFromCloud()
       }
 
       setLoading(false);
     };
     init();
-  }, []); // Run once on mount
+  }, []);
 
   if (loading) {
     return (
