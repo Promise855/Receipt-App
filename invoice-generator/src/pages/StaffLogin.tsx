@@ -172,7 +172,7 @@ export default function StaffLogin() {
               onClick={() => setShowAdd(true)}
               className="px-10 py-5 bg-white/20 text-white text-xl font-bold rounded-2xl hover:bg-white/30 transition shadow-xl transform hover:scale-105"
             >
-              + Add New Staff
+              Add New Staff
             </button>
           </div>
         )}

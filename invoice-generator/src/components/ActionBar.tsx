@@ -85,7 +85,7 @@ const [showPast, setShowPast] = useState(false);
                 {/* Generate Receipt */}
                 <button
                 onClick={handleGenerateClick}
-                className="flex-1 px-6 py-3 bg-[#022142] text-white text-lg font-bold rounded-xl hover:bg-[#053f7c] transition-all shadow-lg"
+                className="w-full sm:w-auto flex-1 px-8 py-5 bg-[#022142] text-white text-lg sm:text-xl font-bold rounded-xl hover:bg-[#053f7c] transition shadow-xl"
                 >
                 Generate Receipt
                 </button>
@@ -93,9 +93,9 @@ const [showPast, setShowPast] = useState(false);
                 {/* View Past Receipts */}
                 <button
                 onClick={() => setShowPast(true)}
-                className="flex-1 px-6 py-3 bg-gray-700 text-white text-lg font-bold rounded-xl hover:bg-gray-800 transition-all shadow-lg"
+                className="w-full sm:w-auto flex-1 px-8 py-5 bg-gray-700 text-white text-lg sm:text-xl font-bold rounded-xl hover:bg-gray-800 transition shadow-xl"
                 >
-                View Past Receipts
+                View Receipts
                 </button>
             </div>
         </div>

@@ -102,9 +102,9 @@ export default function ItemsTable() {
                         <button
                             type="button"
                             onClick={() => openDetailsPopover(item.id)}
-                            className={`details-btn px-4 py-1.5 bg-[#022142] text-white text-xs rounded hover:bg-[#02538b] transition ${
+                            className={`details-btn px-3 py-1.5 bg-[#022142] text-white text-xs rounded hover:bg-[#02538b] transition ${
                             item.details.itemSN || item.details.itemMN || item.details.itemIMEI
-                                ? 'bg-green-600 hover:bg-green-700'
+                                ? 'bg-green-700 hover:bg-green-800'
                                 : ''
                             }`}
                         >

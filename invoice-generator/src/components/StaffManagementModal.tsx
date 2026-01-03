@@ -1,3 +1,5 @@
+// src/components/StaffManagementModal.tsx
+
 import { useEffect, useState } from 'react';
 import { db } from '../lib/db';
 import { hashPin } from '../utils';
@@ -14,6 +16,7 @@ export default function StaffManagementModal({ onClose }: Props) {
   const [showAdd, setShowAdd] = useState(false);
   const [newName, setNewName] = useState('');
   const [newPin, setNewPin] = useState('');
+  const [deleteId, setDeleteId] = useState<number | null>(null); // For custom delete confirm
 
   useEffect(() => {
     loadStaff();
@@ -92,16 +95,28 @@ export default function StaffManagementModal({ onClose }: Props) {
     }
   };
 
-  const handleDelete = async (id: number) => {
-    if (confirm('Delete this staff member? Their receipts will remain tagged.')) {
-      try {
-        await db.staff.delete(id);
-        loadStaff();
-      } catch (error) {
-        console.error('Delete failed:', error);
-        alert('Failed to delete');
-      }
+  // Open delete confirmation modal
+  const openDeleteConfirm = (id: number) => {
+    setDeleteId(id);
+  };
+
+  // Confirm delete
+  const confirmDelete = async () => {
+    if (deleteId === null) return;
+
+    try {
+      await db.staff.delete(deleteId);
+      loadStaff();
+      setDeleteId(null);
+    } catch (error) {
+      console.error('Delete failed:', error);
+      alert('Failed to delete staff');
     }
+  };
+
+  // Cancel delete
+  const cancelDelete = () => {
+    setDeleteId(null);
   };
 
   return (
@@ -195,7 +210,7 @@ export default function StaffManagementModal({ onClose }: Props) {
                         </button>
                         {staff.role !== 'manager' && (
                           <button
-                            onClick={() => handleDelete(staff.id!)}
+                            onClick={() => openDeleteConfirm(staff.id!)}
                             className="flex-1 sm:flex-initial px-6 py-2 bg-red-600 text-white text-lg font-bold rounded-xl hover:bg-red-700 transition shadow-md"
                           >
                             Delete
@@ -269,6 +284,36 @@ export default function StaffManagementModal({ onClose }: Props) {
                   className="flex-1 px-6 py-4 bg-[#022142] text-white text-xl font-bold rounded-xl hover:bg-[#053f7c] disabled:opacity-50 disabled:cursor-not-allowed transition shadow-lg"
                 >
                   Add Staff
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Custom Delete Confirmation Modal */}
+        {deleteId !== null && (
+          <div className="fixed inset-0 glass-backdrop z-60 flex items-center justify-center px-4">
+            <div className="bg-white rounded-3xl p-10 max-w-md w-full shadow-2xl border border-white/50">
+              <div className="text-center mb-8">
+                <div className="text-6xl mb-4">🗑️</div>
+                <h3 className="text-2xl font-bold text-[#022142]">Delete Staff?</h3>
+                <p className="text-gray-700 mt-4">
+                  This action <strong>cannot be undone</strong>. The staff member will be permanently deleted.
+                </p>
+              </div>
+
+              <div className="flex gap-6">
+                <button
+                  onClick={cancelDelete}
+                  className="flex-1 px-6 py-3 bg-gray-500 text-white text-xl font-bold rounded-xl hover:bg-gray-600 transition"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={confirmDelete}
+                  className="flex-1 px-6 py-3 bg-red-600 text-white text-xl font-bold rounded-xl hover:bg-red-700 transition shadow-lg"
+                >
+                  Delete
                 </button>
               </div>
             </div>

@@ -41,35 +41,41 @@ function App() {
     <div className="min-h-screen bg-[#f8f9fa]">
       {/* Current User Bar */}
       <div className="bg-[#022142] text-white shadow-2xl">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5 flex flex-col sm:flex-row justify-between items-center gap-4">
-          <div className="flex items-center gap-5">
-            <div className="text-5xl">👤</div>
-            <div>
-              <h2 className="text-2xl font-bold">{currentUser.name}</h2>
-              <p className="text-sm opacity-90 capitalize">{currentUser.role}</p>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-5">
+          <div className="flex items-center justify-between">
+            {/* Left: User Info */}
+            <div className="flex items-center gap-4 sm:gap-5 min-w-0">
+              <div className="text-4xl sm:text-5xl flex-shrink-0">👤</div>
+              <div className="min-w-0">
+                <h2 className="text-xl sm:text-2xl font-bold truncate">{currentUser.name}</h2>
+                <p className="text-sm sm:text-base opacity-90 capitalize mt-0.5">{currentUser.role}</p>
+              </div>
+            </div>
+
+            {/* Right: Three-Dot Menu - Always aligned to the far right */}
+            <div className="flex-shrink-0">
+              <UserMenuDropdown
+                onManageStaff={() => setShowStaffManagement(true)}
+                onCompanySettings={() => setShowCompanySettings(true)}
+                onEditProfile={() => setShowEditProfile(true)}
+              />
             </div>
           </div>
-
-          {/* Three-Dot Menu */}
-          <UserMenuDropdown
-            onManageStaff={() => setShowStaffManagement(true)}
-            onCompanySettings={() => setShowCompanySettings(true)}
-            onEditProfile={() => setShowEditProfile(true)}
-          />
-
-          {showStaffManagement && (
-            <StaffManagementModal onClose={() => setShowStaffManagement(false)} />
-          )}
-
-          {showCompanySettings && (
-            <CompanySettingsModal onClose={() => setShowCompanySettings(false)} />
-          )}
-
-          {showEditProfile && (
-            <EditProfileModal onClose={() => setShowEditProfile(false)} />
-          )}
         </div>
       </div>
+
+      {/* Modals */}
+      {showStaffManagement && (
+        <StaffManagementModal onClose={() => setShowStaffManagement(false)} />
+      )}
+
+      {showCompanySettings && (
+        <CompanySettingsModal onClose={() => setShowCompanySettings(false)} />
+      )}
+
+      {showEditProfile && (
+        <EditProfileModal onClose={() => setShowEditProfile(false)} />
+      )}
 
       {/* Main Content */}
       <div className="pb-32">

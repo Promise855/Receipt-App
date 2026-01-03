@@ -176,7 +176,7 @@ export default function ReceiptPreview() {
       <div className="text-center mt-8 print:hidden">
       <button
         onClick={() => window.print()}
-        className="px-8 py-3 bg-[#022142] text-white rounded-lg hover:bg-[#053f7c] transition shadow-md"
+        className="px-8 py-5 bg-[#022142] text-white text-xl font-bold rounded-2xl hover:bg-[#053f7c] active:bg-[#011a38] transition-all duration-200 shadow-2xl transform hover:scale-105 active:scale-100"
       >
         🖨️ Print Receipt
       </button>
