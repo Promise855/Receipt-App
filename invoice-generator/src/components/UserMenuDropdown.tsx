@@ -138,13 +138,13 @@ export default function UserMenuDropdown({ onManageStaff, onCompanySettings, onE
             <div className="flex gap-6">
               <button
                 onClick={cancelLogout}
-                className="flex-1 px-8 py-4 bg-gray-500 text-white text-xl font-bold rounded-xl hover:bg-gray-600 transition"
+                className="flex-1 px-6 py-3 bg-gray-500 text-white text-xl font-bold rounded-xl hover:bg-gray-600 transition"
               >
                 Cancel
               </button>
               <button
                 onClick={confirmLogout}
-                className="flex-1 px-8 py-4 bg-red-600 text-white text-xl font-bold rounded-xl hover:bg-red-700 transition shadow-lg"
+                className="flex-1 px-6 py-3 bg-red-600 text-white text-xl font-bold rounded-xl hover:bg-red-700 transition shadow-lg"
               >
                 End Shift
               </button>
