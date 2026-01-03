@@ -18,19 +18,34 @@ function App() {
   const [showStaffManagement, setShowStaffManagement] = useState(false);
   const [showEditProfile, setShowEditProfile] = useState(false);
   const { currentUser, loadFromStorage } = useCurrentUserStore();
+  const [isFirstTime, setIsFirstTime] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
+useEffect(() => {
     const init = async () => {
       setLoading(true);
+
+      // 1. Load local user data
       await loadFromStorage();
 
-      if (navigator.onLine) {
-        await fullSync();
+      // 2. Always pull latest from cloud (critical for new devices)
+      console.log('App starting — pulling data from cloud...');
+      await fullSync();
+
+      // 3. Now check if any staff exists (local + cloud synced)
+      const staffCount = await db.staff.count();
+
+      if (staffCount === 0) {
+        console.log('No staff found — first-time setup');
+        setIsFirstTime(true);
+      } else {
+        console.log(`Found ${staffCount} staff members — normal login`);
+        setIsFirstTime(false);
       }
 
       setLoading(false);
     };
+
     init();
   }, []);
 
@@ -42,6 +57,12 @@ function App() {
     );
   }
 
+  // First-time: Create Manager Account
+  if (isFirstTime) {
+    return <CreateManagerAccount onComplete={() => setIsFirstTime(false)} />;
+  }
+
+  // Normal login flow
   if (!currentUser) {
     return <StaffLogin />;
   }
