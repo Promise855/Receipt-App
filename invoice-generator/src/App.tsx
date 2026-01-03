@@ -22,11 +22,11 @@ function App() {
 
   useEffect(() => {
     const init = async () => {
+      setLoading(true);
       await loadFromStorage();
 
-      // Force pull from cloud on every load
       if (navigator.onLine) {
-        await fullSync(); // or just pullFromCloud()
+        await fullSync();
       }
 
       setLoading(false);
