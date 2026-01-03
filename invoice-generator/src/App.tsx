@@ -1,3 +1,5 @@
+// src/App.tsx
+
 import { useEffect, useState } from 'react';
 import { useCurrentUserStore } from './stores/useCurrentUserStore';
 import InvoiceHeaderForm from './components/InvoiceHeaderForm';
@@ -9,25 +11,28 @@ import StaffManagementModal from './components/StaffManagementModal';
 import CompanySettingsModal from './components/CompanySettingsModal';
 import UserMenuDropdown from './components/UserMenuDropdown';
 import EditProfileModal from './components/EditProfileModal';
-import { fullSync } from './lib/sync';
+import { fullSync } from './lib/sync'; // Import fullSync
 
 function App() {
   const [showCompanySettings, setShowCompanySettings] = useState(false);
   const [showStaffManagement, setShowStaffManagement] = useState(false);
-  const { currentUser, loadFromStorage, logout } = useCurrentUserStore();
-  const [loading, setLoading] = useState(true);
   const [showEditProfile, setShowEditProfile] = useState(false);
+  const { currentUser, loadFromStorage } = useCurrentUserStore();
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const init = async () => {
-      await loadFromStorage();
+      await loadFromStorage(); // Load current user from local storage
+
       if (currentUser) {
-        await fullSync();
+        console.log('User logged in — syncing data from cloud...');
+        await fullSync(); // Pull latest receipts, staff, settings from Supabase
       }
+
       setLoading(false);
     };
     init();
-  }, []);
+  }, []); // Run once on mount
 
   if (loading) {
     return (
@@ -56,7 +61,7 @@ function App() {
               </div>
             </div>
 
-            {/* Right: Three-Dot Menu - Always aligned to the far right */}
+            {/* Right: Three-Dot Menu */}
             <div className="flex-shrink-0">
               <UserMenuDropdown
                 onManageStaff={() => setShowStaffManagement(true)}
@@ -91,7 +96,6 @@ function App() {
           </div>
         </div>
       </div>
-
       <ActionBar />
     </div>
   );

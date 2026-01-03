@@ -5,7 +5,7 @@ import { useInvoiceStore } from '../stores/useInvoiceStore';
 import { db } from '../lib/db';
 import PastReceiptsModal from './PastReceiptsModal';
 import { useCurrentUserStore } from '../stores/useCurrentUserStore';
-import { supabase } from '../lib/supabase'; // Make sure this import exists
+import { supabase } from '../lib/supabase';
 
 export default function ActionBar() {
   const [showPast, setShowPast] = useState(false);
@@ -13,14 +13,22 @@ export default function ActionBar() {
   const state = useInvoiceStore();
 
   const handleGenerateClick = () => {
+    // Check for items
     if (state.items.length === 0) {
       alert('Please add at least one item before generating receipt.');
       return;
     }
-    if (!state.customerName.trim() || !state.invoiceNumber.trim()) {
+
+    // Safe trim check
+    const customerName = (state.customerName || '').trim();
+    const invoiceNumber = (state.invoiceNumber || '').trim();
+
+    if (customerName === '' || invoiceNumber === '') {
       alert('Please fill in customer name and invoice number.');
       return;
     }
+
+    console.log('Validation passed — showing confirmation modal');
     setShowConfirm(true);
   };
 
@@ -35,77 +43,84 @@ export default function ActionBar() {
 
     try {
       const plainData = {
-        customerName: state.customerName,
-        phoneNumber: state.phoneNumber,
-        invoiceNumber: state.invoiceNumber,
-        date: state.date,
-        paymentMode: state.paymentMode,
+        customerName: (state.customerName || '').trim(),
+        phoneNumber: (state.phoneNumber || '').trim(),
+        invoiceNumber: (state.invoiceNumber || '').trim(),
+        date: state.date || new Date().toISOString().split('T')[0],
+        paymentMode: state.paymentMode || 'Cash',
         items: state.items.map(item => ({
           id: item.id,
           sn: item.sn,
           name: item.name,
           description: item.description,
           details: { ...item.details },
-          qty: item.qty,
-          unitPrice: item.unitPrice,
-          discount: item.discount,
-          amount: item.amount,
+          qty: item.qty || 1,
+          unitPrice: item.unitPrice || 0,
+          discount: item.discount || 0,
+          amount: item.amount || 0,
         })),
-        itemQty: state.itemQty,
-        subTotal: state.subTotal,
-        total: state.total,
-        amountInWords: state.amountInWords,
+        itemQty: state.itemQty || 0,
+        subTotal: state.subTotal || 0,
+        total: state.total || 0,
+        amountInWords: state.amountInWords || '',
         generatedByStaffId: currentUser.id,
         generatedByName: currentUser.name,
       };
 
-      // 1. Save locally (Dexie)
-      await db.receipts.add({
+      console.log('Saving receipt locally...');
+
+      // Save locally to Dexie
+      const savedId = await db.receipts.add({
         data: plainData,
         timestamp: new Date().toISOString(),
-        invoiceNumber: state.invoiceNumber,
-        customerName: state.customerName,
-        total: state.total,
+        invoiceNumber: plainData.invoiceNumber,
+        customerName: plainData.customerName,
+        total: plainData.total,
         generatedByStaffId: currentUser.id,
         generatedByName: currentUser.name,
       });
 
-      // 2. Sync to Supabase cloud
-      const { error: supabaseError } = await supabase
-        .from('receipts')
-        .insert({
-          invoice_number: plainData.invoiceNumber,
-          customer_name: plainData.customerName,
-          phone_number: plainData.phoneNumber,
-          date: plainData.date,
-          payment_mode: plainData.paymentMode,
-          total: plainData.total,
-          sub_total: plainData.subTotal,
-          item_qty: plainData.itemQty,
-          amount_in_words: plainData.amountInWords,
-          items: plainData.items,
-          generated_by_staff_id: plainData.generatedByStaffId,
-          generated_by_name: plainData.generatedByName,
-          timestamp: new Date().toISOString(),
-        });
+      console.log('Receipt saved locally with ID:', savedId);
 
-      if (supabaseError) {
-        console.error('Supabase sync failed:', supabaseError);
-        // Optional: show in-app message
-        // alert('Receipt saved locally. Will sync when online.');
+      // Sync to Supabase
+      const { error } = await supabase.from('receipts').insert({
+        invoice_number: plainData.invoiceNumber,
+        customer_name: plainData.customerName,
+        phone_number: plainData.phoneNumber,
+        date: plainData.date,
+        payment_mode: plainData.paymentMode,
+        total: plainData.total,
+        sub_total: plainData.subTotal,
+        item_qty: plainData.itemQty,
+        amount_in_words: plainData.amountInWords,
+        items: plainData.items,
+        generated_by_staff_id: plainData.generatedByStaffId,
+        generated_by_name: plainData.generatedByName,
+        timestamp: new Date().toISOString(),
+      });
+
+      if (error) {
+        console.error('Supabase sync error:', error);
       } else {
         console.log('Receipt synced to cloud successfully!');
       }
 
-      // Open preview
+      // Save for preview
       localStorage.setItem('currentReceipt', JSON.stringify(plainData));
-      const previewWindow = window.open('/receipt-preview', '_blank');
-      if (!previewWindow) {
-        alert('Please allow popups to view the receipt.');
-      }
+
+      // Open preview window (avoid popup blocker)
+      setTimeout(() => {
+        const previewWindow = window.open('/receipt-preview', '_blank');
+        if (!previewWindow) {
+          alert('Popup blocked! Please allow popups for this site to view the receipt.');
+        } else {
+          console.log('Receipt preview opened');
+        }
+      }, 100);
+
     } catch (error) {
-      console.error('Save failed:', error);
-      alert('Failed to save receipt. Check console.');
+      console.error('Receipt generation failed:', error);
+      alert('Failed to generate receipt. See console for details.');
     }
   };
 
@@ -113,7 +128,6 @@ export default function ActionBar() {
     <>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5 mb-6">
         <div className="flex flex-col sm:flex-row gap-4 justify-center items-stretch">
-          {/* Generate Receipt */}
           <button
             onClick={handleGenerateClick}
             className="w-full sm:w-auto flex-1 px-8 py-5 bg-[#022142] text-white text-lg sm:text-xl font-bold rounded-xl hover:bg-[#053f7c] transition shadow-xl"
@@ -121,7 +135,6 @@ export default function ActionBar() {
             Generate Receipt
           </button>
 
-          {/* View Past Receipts */}
           <button
             onClick={() => setShowPast(true)}
             className="w-full sm:w-auto flex-1 px-8 py-5 bg-gray-700 text-white text-lg sm:text-xl font-bold rounded-xl hover:bg-gray-800 transition shadow-xl"
@@ -140,9 +153,9 @@ export default function ActionBar() {
               Confirm Generate Receipt
             </h3>
             <p className="text-gray-700 mb-6">
-              Invoice: <strong>{state.invoiceNumber}</strong><br />
-              Customer: <strong>{state.customerName}</strong><br />
-              Total: <strong>₦{state.total.toLocaleString('en-NG', { minimumFractionDigits: 2 })}</strong>
+              Invoice: <strong>{state.invoiceNumber || 'N/A'}</strong><br />
+              Customer: <strong>{state.customerName || 'N/A'}</strong><br />
+              Total: <strong>₦{(state.total || 0).toLocaleString('en-NG', { minimumFractionDigits: 2 })}</strong>
             </p>
             <div className="flex gap-4 justify-center">
               <button
@@ -162,8 +175,9 @@ export default function ActionBar() {
         </div>
       )}
 
-      {/* Past Receipts Modal */}
-      {showPast && <PastReceiptsModal onClose={() => setShowPast(false)} />}
+      {showPast && (
+        <PastReceiptsModal onClose={() => setShowPast(false)} />
+      )}
     </>
   );
 }

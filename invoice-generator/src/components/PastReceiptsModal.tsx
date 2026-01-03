@@ -46,12 +46,16 @@ export default function PastReceiptsModal({ onClose }: Props) {
     setReceipts(summaries);
   };
 
-  const filtered = receipts.filter(r =>
-    r.invoiceNumber.toLowerCase().includes(search.toLowerCase()) ||
-    r.customerName.toLowerCase().includes(search.toLowerCase()) ||
-    r.timestamp.slice(0,10).includes(search) ||
-    (r.generatedByName && r.generatedByName.toLowerCase().includes(search.toLowerCase()))
-  );
+  const filtered = receipts.filter(r => {
+    const searchLower = search.toLowerCase();
+
+    const invoiceMatch = (r.invoiceNumber || '').toLowerCase().includes(searchLower);
+    const customerMatch = (r.customerName || '').toLowerCase().includes(searchLower);
+    const dateMatch = r.timestamp.slice(0, 10).includes(search);
+    const staffMatch = (r.generatedByName || '').toLowerCase().includes(searchLower);
+
+    return invoiceMatch || customerMatch || dateMatch || staffMatch;
+  });
 
   const sorted = [...filtered].sort((a, b) => {
     if (selectedSort.id === 'date-desc') return b.timestamp.localeCompare(a.timestamp);
