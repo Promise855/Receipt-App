@@ -13,6 +13,7 @@
     "@headlessui/react": "^2.2.9",
     "@hookform/resolvers": "^5.2.2",
     "@react-pdf/renderer": "^4.3.2",
+    "@supabase/supabase-js": "^2.89.0",
     "@tailwindcss/vite": "^4.1.18",
     "@tanstack/react-table": "^8.21.3",
     "dexie": "^4.2.1",

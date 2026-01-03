@@ -9,6 +9,7 @@ import StaffManagementModal from './components/StaffManagementModal';
 import CompanySettingsModal from './components/CompanySettingsModal';
 import UserMenuDropdown from './components/UserMenuDropdown';
 import EditProfileModal from './components/EditProfileModal';
+import { fullSync } from './lib/sync';
 
 function App() {
   const [showCompanySettings, setShowCompanySettings] = useState(false);
@@ -20,6 +21,9 @@ function App() {
   useEffect(() => {
     const init = async () => {
       await loadFromStorage();
+      if (currentUser) {
+        await fullSync();
+      }
       setLoading(false);
     };
     init();
