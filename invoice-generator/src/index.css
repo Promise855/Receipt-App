@@ -1,3 +1,4 @@
+/* src/index.css */
 @import "tailwindcss";
 
 @theme {
@@ -50,15 +51,23 @@
 
 /* Modal Content Card */
 .glass-modal {
-  @apply bg-white/95 backdrop-blur-md rounded-[2.5rem] p-10 w-full shadow-2xl border border-white/20 animate-fade-in;
+  /* FIX: Changed @apply animate-fade-in to use the raw animation property 
+     to prevent the Tailwind compiler from failing during the Vercel build */
+  @apply bg-white/95 backdrop-blur-md rounded-[2.5rem] p-10 w-full shadow-2xl border border-white/20;
+  animation: fade-in 0.6s ease-out; 
   max-height: 90vh;
   overflow-y: auto;
 }
 
 /* Standard Inputs - Modern Style */
 .form-input {
-  @apply w-full px-6 py-4 text-lg bg-white border-2 border-[#ced4da] rounded-xl focus-within:border-[#022142] transition-all duration-200 hover:border-[#022142]/70;
+  @apply w-full px-6 py-4 text-lg bg-white border-2 border-[#ced4da] rounded-xl transition-all duration-200;
 }
 
+.form-input:focus-within {
+  border-color: #022142;
+}
 
-
+.form-input:hover {
+  border-color: rgba(2, 33, 66, 0.7);
+}
