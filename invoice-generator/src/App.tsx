@@ -2,45 +2,37 @@
 
 import { useEffect, useState } from 'react';
 import { useCurrentUserStore } from './stores/useCurrentUserStore';
-import InvoiceHeaderForm from './components/InvoiceHeaderForm';
 import ItemsTable from './components/ItemsTable';
 import TotalsSection from './components/TotalsSection';
-import ActionBar from './components/ActionBar';
 import StaffLogin from './pages/StaffLogin';
 import StaffManagementModal from './components/StaffManagementModal';
 import CompanySettingsModal from './components/CompanySettingsModal';
 import UserMenuDropdown from './components/UserMenuDropdown';
 import EditProfileModal from './components/EditProfileModal';
-import { fullSync } from './lib/sync'; // Import fullSync
+import CreateManagerAccount from './pages/CreateManagerAccount';
+import InvoiceFormWrapper from './components/InvoiceFormWrapper';
+import { fullSync } from './lib/sync';
+import { db } from './lib/db';
 
 function App() {
   const [showCompanySettings, setShowCompanySettings] = useState(false);
   const [showStaffManagement, setShowStaffManagement] = useState(false);
   const [showEditProfile, setShowEditProfile] = useState(false);
-  const { currentUser, loadFromStorage } = useCurrentUserStore();
   const [isFirstTime, setIsFirstTime] = useState(false);
+  const { currentUser, loadFromStorage } = useCurrentUserStore();
   const [loading, setLoading] = useState(true);
 
-useEffect(() => {
+  useEffect(() => {
     const init = async () => {
       setLoading(true);
 
-      // 1. Load local user data
       await loadFromStorage();
 
-      // 2. Always pull latest from cloud (critical for new devices)
-      console.log('App starting — pulling data from cloud...');
-      await fullSync();
-
-      // 3. Now check if any staff exists (local + cloud synced)
       const staffCount = await db.staff.count();
-
       if (staffCount === 0) {
-        console.log('No staff found — first-time setup');
         setIsFirstTime(true);
       } else {
-        console.log(`Found ${staffCount} staff members — normal login`);
-        setIsFirstTime(false);
+        await fullSync();
       }
 
       setLoading(false);
@@ -51,38 +43,36 @@ useEffect(() => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-900 to-[#022142] flex items-center justify-center">
-        <div className="text-white text-2xl font-bold">Loading Octavian Dynamics...</div>
+      <div className="min-h-screen bg-gradient-to-br from-blue-900 via-[#022142] to-blue-950 flex items-center justify-center">
+        <p className="text-white text-2xl">Loading Octavian Dynamics...</p>
       </div>
     );
   }
 
-  // First-time: Create Manager Account
   if (isFirstTime) {
     return <CreateManagerAccount onComplete={() => setIsFirstTime(false)} />;
   }
 
-  // Normal login flow
   if (!currentUser) {
     return <StaffLogin />;
   }
 
   return (
-    <div className="min-h-screen bg-[#f8f9fa]">
-      {/* Current User Bar */}
-      <div className="bg-[#022142] text-white shadow-2xl">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-5">
-          <div className="flex items-center justify-between">
-            {/* Left: User Info */}
-            <div className="flex items-center gap-4 sm:gap-5 min-w-0">
-              <div className="text-4xl sm:text-5xl flex-shrink-0">👤</div>
-              <div className="min-w-0">
-                <h2 className="text-xl sm:text-2xl font-bold truncate">{currentUser.name}</h2>
-                <p className="text-sm sm:text-base opacity-90 capitalize mt-0.5">{currentUser.role}</p>
-              </div>
+    <div className="min-h-screen bg-gray-50">
+      {/* Header */}
+      <div className="bg-[#022142] text-white shadow-xl">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
+          <div>
+            <h1 className="text-2xl sm:text-3xl font-bold">Octavian Dynamics</h1>
+            <p className="text-sm opacity-90">Invoice Generator</p>
+          </div>
+
+          <div className="flex items-center gap-6">
+            <div className="text-right hidden sm:block">
+              <h2 className="text-xl sm:text-2xl font-bold truncate">{currentUser.name}</h2>
+              <p className="text-sm sm:text-base opacity-90 capitalize mt-0.5">{currentUser.role}</p>
             </div>
 
-            {/* Right: Three-Dot Menu */}
             <div className="flex-shrink-0">
               <UserMenuDropdown
                 onManageStaff={() => setShowStaffManagement(true)}
@@ -94,12 +84,12 @@ useEffect(() => {
         </div>
       </div>
 
-      {/* Modals */}
-      {showStaffManagement && (
+      {/* Manager Modals */}
+      {currentUser.role === 'manager' && showStaffManagement && (
         <StaffManagementModal onClose={() => setShowStaffManagement(false)} />
       )}
 
-      {showCompanySettings && (
+      {currentUser.role === 'manager' && showCompanySettings && (
         <CompanySettingsModal onClose={() => setShowCompanySettings(false)} />
       )}
 
@@ -111,13 +101,12 @@ useEffect(() => {
       <div className="pb-32">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
           <div className="bg-white rounded-lg shadow-lg p-6 sm:p-8 lg:p-10">
-            <InvoiceHeaderForm />
+            <InvoiceFormWrapper />
             <ItemsTable />
             <TotalsSection />
           </div>
         </div>
       </div>
-      <ActionBar />
     </div>
   );
 }

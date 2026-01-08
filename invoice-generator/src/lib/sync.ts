@@ -4,9 +4,6 @@ import { supabase } from './supabase';
 import { db } from './db';
 import { useCompanyStore } from '../stores/useCompanyStore';
 
-/**
- * Sync local data to Supabase cloud (upload)
- */
 export async function syncToCloud() {
   try {
     console.log('Starting sync to cloud...');
@@ -24,7 +21,8 @@ export async function syncToCloud() {
         sub_total: r.subTotal || 0,
         item_qty: r.itemQty || 0,
         amount_in_words: r.amountInWords || '',
-        items: r.data?.items || r.items || [],
+        items: r.items || [],
+        data: r.data, // full backup
         generated_by_staff_id: r.generatedByStaffId,
         generated_by_name: r.generatedByName,
         timestamp: r.timestamp,
@@ -34,74 +32,42 @@ export async function syncToCloud() {
         .from('receipts')
         .upsert(receiptPayload, { onConflict: 'invoice_number' });
 
-      if (error) {
-        console.error('Receipts sync to cloud failed:', error);
-      } else {
-        console.log(`Synced ${localReceipts.length} receipts to cloud`);
-      }
+      if (error) console.error('Receipts sync error:', error);
+      else console.log(`Synced ${localReceipts.length} receipts to cloud`);
     }
 
-    // Sync staff
-    const localStaff = await db.staff.toArray();
-    if (localStaff.length > 0) {
-      const staffPayload = localStaff.map(s => ({
-        name: s.name,
-        pin_hash: s.pinHash,
-        role: s.role,
-        created_at: s.createdAt,
-      }));
-
-      const { error } = await supabase
-        .from('staff')
-        .upsert(staffPayload, { onConflict: 'name' });
-
-      if (error) {
-        console.error('Staff sync to cloud failed:', error);
-      } else {
-        console.log(`Synced ${localStaff.length} staff members to cloud`);
-      }
-    }
-
-    // Sync company settings
-    const companyState = useCompanyStore.getState();
+    // Push company settings (only one row, id=1)
+    const company = useCompanyStore.getState();
     const { error: settingsError } = await supabase
       .from('company_settings')
       .upsert({
-        name: companyState.name,
-        address: companyState.address,
-        phone: companyState.phone,
-        email1: companyState.email1,
-        email2: companyState.email2,
-        logo: companyState.logo,
-      }, { onConflict: 'id' });
+        id: 1,
+        name: company.name || 'Octavian Dynamics',
+        address: company.address,
+        phone: company.phone,
+        email1: company.email1,
+        email2: company.email2,
+        logo: company.logo,
+      });
 
-    if (settingsError) {
-      console.error('Company settings sync failed:', settingsError);
-    } else {
-      console.log('Company settings synced to cloud');
-    }
+    if (settingsError) console.error('Company settings sync error:', settingsError);
 
   } catch (err) {
     console.error('Sync to cloud failed:', err);
   }
 }
 
-/**
- * Pull latest data from Supabase cloud to local DB
- */
 export async function syncFromCloud() {
   try {
-    console.log('Starting sync from cloud...');
+    console.log('Pulling data from cloud...');
 
     // Pull receipts
     const { data: cloudReceipts, error: receiptsError } = await supabase
       .from('receipts')
-      .select('*')
-      .order('timestamp', { ascending: false });
+      .select('*');
 
-    if (receiptsError) {
-      console.error('Error pulling receipts:', receiptsError);
-    } else if (cloudReceipts && cloudReceipts.length > 0) {
+    if (receiptsError) console.error('Receipts pull error:', receiptsError);
+    else if (cloudReceipts && cloudReceipts.length > 0) {
       await db.receipts.bulkPut(cloudReceipts);
       console.log(`Pulled ${cloudReceipts.length} receipts from cloud`);
     }
@@ -111,11 +77,10 @@ export async function syncFromCloud() {
       .from('staff')
       .select('*');
 
-    if (staffError) {
-      console.error('Error pulling staff:', staffError);
-    } else if (cloudStaff && cloudStaff.length > 0) {
+    if (staffError) console.error('Staff pull error:', staffError);
+    else if (cloudStaff && cloudStaff.length > 0) {
       await db.staff.bulkPut(cloudStaff);
-      console.log(`Pulled ${cloudStaff.length} staff members from cloud`);
+      console.log(`Pulled ${cloudStaff.length} staff from cloud`);
     }
 
     // Pull company settings
@@ -125,18 +90,18 @@ export async function syncFromCloud() {
       .eq('id', 1)
       .single();
 
-    if (settingsError && settingsError.code !== 'PGRST116') { // PGRST116 = no row
-      console.error('Error pulling company settings:', settingsError);
+    if (settingsError && settingsError.code !== 'PGRST116') {
+      console.error('Company settings pull error:', settingsError);
     } else if (cloudSettings) {
       useCompanyStore.getState().setSettings({
-        name: cloudSettings.name,
+        name: cloudSettings.name || '',
         address: cloudSettings.address || '',
         phone: cloudSettings.phone || '',
         email1: cloudSettings.email1 || '',
         email2: cloudSettings.email2 || '',
         logo: cloudSettings.logo || '',
       });
-      console.log('Company settings pulled from cloud');
+      console.log('Company settings synced from cloud');
     }
 
   } catch (err) {
@@ -144,10 +109,7 @@ export async function syncFromCloud() {
   }
 }
 
-/**
- * Full bidirectional sync
- */
 export async function fullSync() {
-  await syncFromCloud(); // Pull latest from cloud first
+  await syncFromCloud(); // Pull first (cloud wins conflicts)
   await syncToCloud();   // Then push local changes
 }

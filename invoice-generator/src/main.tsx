@@ -1,11 +1,10 @@
+// src/main.tsx
 import React from 'react'
 import ReactDOM from 'react-dom/client'
 import App from './App.tsx'
 import ReceiptPreview from './pages/ReceiptPreview.tsx'
 import './index.css'
 import { useCompanyStore } from './stores/useCompanyStore';
-import 'react-date-picker/dist/DatePicker.css';
-import 'react-calendar/dist/Calendar.css';
 
 useCompanyStore.getState().loadFromStorage();
 

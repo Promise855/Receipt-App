@@ -1,6 +1,6 @@
 // src/components/PastReceiptsModal.tsx
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { db } from '../lib/db';
 import { Listbox } from '@headlessui/react';
 
@@ -23,52 +23,77 @@ const sortOptions = [
   { id: 'invoice', name: 'Invoice Number' },
 ] as const;
 
+const MAX_RECEIPTS = 200; // Limit to prevent slow rendering
+
 export default function PastReceiptsModal({ onClose }: Props) {
   const [receipts, setReceipts] = useState<ReceiptSummary[]>([]);
   const [search, setSearch] = useState('');
   const [selectedSort, setSelectedSort] = useState(sortOptions[0]);
   const [deleteId, setDeleteId] = useState<number | null>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    const loadReceipts = async () => {
+      try {
+        setLoading(true);
+        // Load only recent receipts to avoid performance issues
+        const all = await db.receipts
+          .orderBy('timestamp')
+          .reverse()
+          .limit(MAX_RECEIPTS)
+          .toArray();
+
+        const summaries = all.map(r => ({
+          id: r.id!,
+          invoiceNumber: r.invoiceNumber || 'N/A',
+          customerName: r.customerName || 'Unknown',
+          total: r.total || 0,
+          timestamp: r.timestamp || '',
+          generatedByName: r.generatedByName || 'Unknown',
+        }));
+
+        setReceipts(summaries);
+      } catch (error) {
+        console.error('Failed to load receipts:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
     loadReceipts();
   }, []);
 
-  const loadReceipts = async () => {
-    const all = await db.receipts.toArray();
-    const summaries = all.map(r => ({
-      id: r.id!,
-      invoiceNumber: r.invoiceNumber,
-      customerName: r.customerName,
-      total: r.total,
-      timestamp: r.timestamp,
-      generatedByName: r.generatedByName || 'Unknown',
-    }));
-    setReceipts(summaries);
-  };
-
-  const filtered = receipts.filter(r => {
+  // Memoize filtered and sorted results to avoid expensive recalculations
+  const filteredAndSorted = useMemo(() => {
     const searchLower = search.toLowerCase();
 
-    const invoiceMatch = (r.invoiceNumber || '').toLowerCase().includes(searchLower);
-    const customerMatch = (r.customerName || '').toLowerCase().includes(searchLower);
-    const dateMatch = r.timestamp.slice(0, 10).includes(search);
-    const staffMatch = (r.generatedByName || '').toLowerCase().includes(searchLower);
+    const filtered = receipts.filter(r => {
+      return (
+        r.invoiceNumber.toLowerCase().includes(searchLower) ||
+        r.customerName.toLowerCase().includes(searchLower) ||
+        r.timestamp.slice(0, 10).includes(search) ||
+        r.generatedByName.toLowerCase().includes(searchLower)
+      );
+    });
 
-    return invoiceMatch || customerMatch || dateMatch || staffMatch;
-  });
-
-  const sorted = [...filtered].sort((a, b) => {
-    if (selectedSort.id === 'date-desc') return b.timestamp.localeCompare(a.timestamp);
-    if (selectedSort.id === 'date-asc') return a.timestamp.localeCompare(a.timestamp);
-    if (selectedSort.id === 'invoice') return a.invoiceNumber.localeCompare(b.invoiceNumber);
-    return 0;
-  });
+    return [...filtered].sort((a, b) => {
+      if (selectedSort.id === 'date-desc') return b.timestamp.localeCompare(a.timestamp);
+      if (selectedSort.id === 'date-asc') return a.timestamp.localeCompare(b.timestamp);
+      if (selectedSort.id === 'invoice') return a.invoiceNumber.localeCompare(b.invoiceNumber);
+      return 0;
+    });
+  }, [receipts, search, selectedSort]);
 
   const handleView = async (id: number) => {
-    const fullReceipt = await db.receipts.get(id);
-    if (fullReceipt && fullReceipt.data) {
-      localStorage.setItem('currentReceipt', JSON.stringify(fullReceipt.data));
-      window.open('/receipt-preview', '_blank');
+    try {
+      const fullReceipt = await db.receipts.get(id);
+      if (fullReceipt) {
+        localStorage.setItem('currentReceipt', JSON.stringify(fullReceipt));
+        window.open('/receipt-preview', '_blank');
+      }
+    } catch (error) {
+      console.error('Error viewing receipt:', error);
+      alert('Failed to open receipt');
     }
   };
 
@@ -81,7 +106,7 @@ export default function PastReceiptsModal({ onClose }: Props) {
 
     try {
       await db.receipts.delete(deleteId);
-      loadReceipts();
+      setReceipts(prev => prev.filter(r => r.id !== deleteId));
       setDeleteId(null);
     } catch (error) {
       console.error('Delete failed:', error);
@@ -99,7 +124,7 @@ export default function PastReceiptsModal({ onClose }: Props) {
         {/* Header */}
         <div className="flex-shrink-0 px-6 py-6 border-b border-white/30">
           <h2 className="text-2xl sm:text-3xl font-bold text-[#022142] text-center">
-            Receipts
+            Past Receipts
           </h2>
         </div>
 
@@ -160,15 +185,20 @@ export default function PastReceiptsModal({ onClose }: Props) {
           </div>
         </div>
 
-        {/* Scrollable Receipt List */}
+        {/* Receipt List */}
         <div className="flex-1 overflow-y-auto px-6 pb-6">
-          {sorted.length === 0 ? (
+          {loading ? (
+            <div className="text-center py-16">
+              <div className="inline-block animate-spin rounded-full h-12 w-12 border-t-4 border-[#022142] border-solid"></div>
+              <p className="text-xl text-gray-600 mt-6">Loading receipts...</p>
+            </div>
+          ) : filteredAndSorted.length === 0 ? (
             <div className="text-center py-16">
               <p className="text-xl text-gray-600">No receipts found</p>
             </div>
           ) : (
             <div className="space-y-4">
-              {sorted.map(r => (
+              {filteredAndSorted.map(r => (
                 <div
                   key={r.id}
                   className="bg-white/70 backdrop-blur-sm rounded-2xl p-6 border border-white/40 shadow-lg hover:shadow-xl transition"
@@ -222,7 +252,7 @@ export default function PastReceiptsModal({ onClose }: Props) {
         </div>
       </div>
 
-      {/* Custom Delete Confirmation Modal */}
+      {/* Delete Confirmation Modal */}
       {deleteId !== null && (
         <div className="fixed inset-0 glass-backdrop z-60 flex items-center justify-center px-4">
           <div className="bg-white rounded-3xl p-10 max-w-md w-full shadow-2xl border border-white/50">

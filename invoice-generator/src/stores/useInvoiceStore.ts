@@ -1,6 +1,48 @@
+// src/stores/useInvoiceStore.ts
+
 import { create } from 'zustand';
 import { devtools } from 'zustand/middleware';
 import { numberToWords } from '../utils';
+
+interface Item {
+  id: string;
+  sn: number;
+  name: string;
+  description: string;
+  details: {
+    itemSN?: string;
+    itemMN?: string;
+    itemIMEI?: string;
+  };
+  qty: number;
+  unitPrice: number;
+  discount: number;
+  amount: number;
+}
+
+interface Invoice {
+  customerName: string;
+  phoneNumber: string;
+  invoiceNumber: string;
+  date: string;
+  paymentMode: string;
+  items: Item[];
+  itemQty: number;
+  subTotal: number;
+  total: number;
+  amountInWords: string;
+}
+
+interface InvoiceStore extends Invoice {
+  setCustomerDetails: (data: Partial<Pick<Invoice, 'customerName' | 'phoneNumber'>>) => void;
+  setInvoiceMeta: (data: Partial<Pick<Invoice, 'invoiceNumber' | 'date' | 'paymentMode'>>) => void;
+  addItem: () => void;
+  updateItem: (id: string, updates: Partial<Item>) => void;
+  removeItem: (id: string) => void;
+  recalculateTotals: () => void;
+  setAmountInWords: (words: string) => void;
+  resetInvoice: () => void;
+}
 
 const initialState: Invoice = {
   customerName: '',
@@ -8,7 +50,6 @@ const initialState: Invoice = {
   invoiceNumber: '',
   date: new Date().toISOString().split('T')[0],
   paymentMode: 'Cash',
-
   items: [],
   itemQty: 0,
   subTotal: 0,
@@ -21,13 +62,13 @@ export const useInvoiceStore = create<InvoiceStore>()(
     ...initialState,
 
     setCustomerDetails: (data) =>
-      set({ customerName: data.customerName, phoneNumber: data.phoneNumber }),
+      set({ customerName: data.customerName ?? '', phoneNumber: data.phoneNumber ?? '' }),
 
     setInvoiceMeta: (data) =>
       set({
-        invoiceNumber: data.invoiceNumber,
-        date: data.date,
-        paymentMode: data.paymentMode,
+        invoiceNumber: data.invoiceNumber ?? '',
+        date: data.date ?? '',
+        paymentMode: data.paymentMode ?? 'Cash',
       }),
 
     addItem: () => {
@@ -86,5 +127,5 @@ export const useInvoiceStore = create<InvoiceStore>()(
     setAmountInWords: (words) => set({ amountInWords: words }),
 
     resetInvoice: () => set(initialState),
-  }))
+  }), { name: 'InvoiceStore' })
 );
