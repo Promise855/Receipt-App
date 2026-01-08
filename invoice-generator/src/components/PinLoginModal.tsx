@@ -1,132 +1,109 @@
 // src/components/PinLoginModal.tsx
 
-import { useState } from 'react';
-import { db } from '../lib/db';
+import { useState, useEffect } from 'react';
 import { useCurrentUserStore } from '../stores/useCurrentUserStore';
 import { hashPin } from '../utils';
 
 type Props = {
-  staffId: number;
-  staffName: string;
+  staff: any;
+  onClose: () => void;
   onSuccess: () => void;
-  onCancel: () => void;
 };
 
-export default function PinLoginModal({ staffId, staffName, onSuccess, onCancel }: Props) {
+export default function PinLoginModal({ staff, onClose, onSuccess }: Props) {
   const [pin, setPin] = useState('');
-  const [attempts, setAttempts] = useState(0);
-  const [locked, setLocked] = useState(false);
-  const [lockCountdown, setLockCountdown] = useState(0); // seconds remaining
   const [error, setError] = useState('');
+  const [attempts, setAttempts] = useState(0);
+  const [lockoutTime, setLockoutTime] = useState<number | null>(null);
+  const { login } = useCurrentUserStore();
 
-  const handleSubmit = async () => {
-    if (locked) return;
-
-    setError('');
-
-    const staff = await db.staff.get(staffId);
-    if (!staff || !staff.pinHash) {
-      setError('Staff PIN not configured. Contact manager.');
-      return;
+  useEffect(() => {
+    const savedLockout = localStorage.getItem(`lockout_${staff.id}`);
+    if (savedLockout) {
+      const remaining = parseInt(savedLockout) - Date.now();
+      if (remaining > 0) setLockoutTime(parseInt(savedLockout));
     }
+  }, [staff.id]);
 
-    if (hashPin(pin) === staff.pinHash) {
-      useCurrentUserStore.getState().login({
-        id: staff.id!,
-        name: staff.name,
-        role: staff.role,
-      });
-      setPin('');
-      onSuccess();
+  useEffect(() => {
+    if (lockoutTime) {
+      const timer = setInterval(() => {
+        if (lockoutTime - Date.now() <= 0) {
+          setLockoutTime(null);
+          setAttempts(0);
+          localStorage.removeItem(`lockout_${staff.id}`);
+        }
+      }, 1000);
+      return () => clearInterval(timer);
+    }
+  }, [lockoutTime, staff.id]);
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value.replace(/\D/g, '').slice(0, 4);
+    setPin(val);
+    if (val.length === 4) validatePin(val);
+  };
+
+  const validatePin = async (inputPin: string) => {
+    const hashedInput = hashPin(inputPin);
+    if (hashedInput === staff.pinHash) {
+      login({ id: staff.id, name: staff.name, role: staff.role });
+      onSuccess(); // Trigger transition in App.tsx
     } else {
-      const newAttempts = attempts + 1;
-      setAttempts(newAttempts);
+      const nextAttempts = attempts + 1;
+      setAttempts(nextAttempts);
       setPin('');
-
-      if (newAttempts >= 3) {
-        setLocked(true);
-        setLockCountdown(300); // 5 minutes
-
-        const interval = setInterval(() => {
-          setLockCountdown((prev) => {
-            if (prev <= 1) {
-              clearInterval(interval);
-              setLocked(false);
-              setAttempts(0);
-              setError('');
-              return 0;
-            }
-            return prev - 1;
-          });
-        }, 1000);
-
-        setError('Too many wrong attempts. Account locked for 5 minutes.');
+      if (nextAttempts >= 3) {
+        const lockUntil = Date.now() + 5 * 60 * 1000;
+        setLockoutTime(lockUntil);
+        localStorage.setItem(`lockout_${staff.id}`, lockUntil.toString());
+        setError('Security lockout active.');
       } else {
-        setError(`Wrong PIN. ${3 - newAttempts} attempt${3 - newAttempts === 1 ? '' : 's'} left.`);
+        setError(`Invalid PIN. ${3 - nextAttempts} attempts left.`);
       }
     }
   };
 
-  const formatCountdown = (seconds: number) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  const getRemainingTime = () => {
+    if (!lockoutTime) return '';
+    const seconds = Math.floor((lockoutTime - Date.now()) / 1000);
+    return `${Math.floor(seconds / 60)}:${(seconds % 60).toString().padStart(2, '0')}`;
   };
 
   return (
-    <div className="glass-backdrop">
-      <div className="glass-modal max-w-md">
-        <div className="text-center mb-8">
-          <div className="text-6xl mb-4">🔐</div>
-          <h3 className="text-2xl font-bold text-[#022142]">Enter PIN</h3>
-          <p className="text-lg text-gray-700 mt-2">
-            Welcome back, <strong>{staffName}</strong>
-          </p>
-        </div>
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+      <div className="bg-white rounded-[2.5rem] w-full max-w-md overflow-hidden shadow-2xl border border-gray-100 animate-fade-in">
+        <div className="p-8 sm:p-12 text-center">
+          <div className="w-20 h-20 bg-black rounded-3xl mx-auto mb-6 flex items-center justify-center text-white text-3xl font-black">
+            {staff.name.charAt(0).toUpperCase()}
+          </div>
+          <h3 className="text-2xl font-black text-black uppercase tracking-tighter mb-1">{staff.name}</h3>
+          <p className="text-gray-400 font-bold text-[10px] uppercase tracking-[0.2em] mb-10">Verify Access PIN</p>
 
-        <div className="mb-8">
-          <input
-            type="password"
-            inputMode="numeric"
-            pattern="[0-9]*"
-            maxLength={4}
-            value={pin}
-            onChange={(e) => setPin(e.target.value.slice(0, 4))}
-            onKeyDown={(e) => e.key === 'Enter' && handleSubmit()}
-            className="w-full px-6 py-6 text-4xl text-center tracking-widest bg-white/90 rounded-2xl border-2 border-[#ced4da] focus:border-[#022142] focus:outline-none focus:ring-4 focus:ring-[#022142]/20 transition text-gray-900"
-            placeholder="••••"
-            disabled={locked}
-            autoFocus
-          />
-        </div>
-
-        {/* In-App Error Message */}
-        {error && (
-          <div className="mb-6 p-5 bg-red-100 border-2 border-red-300 rounded-2xl">
-            <p className="text-center text-red-700 font-medium text-lg">{error}</p>
-            {locked && lockCountdown > 0 && (
-              <p className="text-center text-red-600 mt-3 font-bold">
-                Try again in {formatCountdown(lockCountdown)}
-              </p>
+          <div className="relative max-w-[240px] mx-auto">
+            <input
+              type="password"
+              inputMode="numeric"
+              autoFocus
+              value={pin}
+              disabled={!!lockoutTime}
+              onChange={handleInputChange}
+              className="w-full bg-gray-50 border-2 border-gray-100 rounded-2xl py-5 text-center text-3xl tracking-[1em] font-mono focus:border-red-600 focus:bg-white outline-none transition-all"
+              placeholder="••••"
+            />
+            {lockoutTime && (
+              <div className="absolute inset-0 bg-white/90 rounded-2xl flex flex-col items-center justify-center">
+                <p className="text-red-600 font-black text-[10px] uppercase">Locked</p>
+                <p className="text-black font-mono font-bold text-lg">{getRemainingTime()}</p>
+              </div>
             )}
           </div>
-        )}
-
-        <div className="flex gap-4">
-          <button
-            onClick={onCancel}
-            className="flex-1 px-8 py-4 bg-gray-500 text-white text-xl font-bold rounded-xl hover:bg-gray-600 transition shadow-lg"
-          >
-            Cancel
-          </button>
-          <button
-            onClick={handleSubmit}
-            disabled={pin.length !== 4 || locked}
-            className="flex-1 px-8 py-4 bg-[#022142] text-white text-xl font-bold rounded-xl hover:bg-[#053f7c] disabled:opacity-50 disabled:cursor-not-allowed transition shadow-lg"
-          >
-            Login
+          {error && !lockoutTime && <p className="mt-4 text-red-600 font-bold text-[10px] uppercase tracking-tight">{error}</p>}
+          <button onClick={onClose} className="mt-10 w-full py-4 text-gray-400 font-bold uppercase text-[10px] tracking-widest hover:text-red-600 transition-colors">
+            Cancel and Return
           </button>
         </div>
+        <div className="h-2 bg-red-600 w-full"></div>
       </div>
     </div>
   );

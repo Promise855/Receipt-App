@@ -15,6 +15,7 @@ export default function CreateManagerAccount({ onComplete }: Props) {
   const [confirmPin, setConfirmPin] = useState('');
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isInitializing, setIsInitializing] = useState(false);
   const { login } = useCurrentUserStore();
 
   const handleSubmit = async () => {
@@ -22,140 +23,144 @@ export default function CreateManagerAccount({ onComplete }: Props) {
     setIsSubmitting(true);
 
     if (!name.trim()) {
-      setError('Please enter your full name');
+      setError('Full name is required to set up the manager account.');
       setIsSubmitting(false);
       return;
     }
 
     if (pin.length !== 4 || !/^\d{4}$/.test(pin)) {
-      setError('PIN must be exactly 4 digits');
+      setError('Please enter a 4-digit numeric PIN.');
       setIsSubmitting(false);
       return;
     }
 
     if (pin !== confirmPin) {
-      setError('PINs do not match');
+      setError('The PINs you entered do not match.');
       setIsSubmitting(false);
       return;
     }
 
     try {
+      const pinHash = hashPin(pin);
+      
       const addedId = await db.staff.add({
         name: name.trim(),
-        pinHash: hashPin(pin),
+        pinHash: pinHash,
         role: 'manager',
         createdAt: new Date().toISOString(),
       });
 
-      // Auto-login the new manager with correct ID
+      // Show the system initialization screen
+      setIsInitializing(true);
+
+      // Automatically log the manager in
       login({
-        id: Number(addedId),
+        id: addedId as number,
         name: name.trim(),
         role: 'manager',
       });
 
-      onComplete();
+      // Brief delay to allow the "Initializing" animation to play
+      setTimeout(() => {
+        onComplete();
+      }, 2000);
+
     } catch (err) {
-      console.error('Failed to create manager account:', err);
+      console.error('Setup Error:', err);
       setError('Failed to create account. Please try again.');
+      setIsInitializing(false);
       setIsSubmitting(false);
     }
   };
 
+  if (isInitializing) {
+    return (
+      <div className="min-h-screen bg-black flex items-center justify-center">
+        <div className="flex flex-col items-center gap-6">
+          <div className="relative">
+            <div className="h-24 w-24 rounded-full border-4 border-gray-800 border-t-red-600 animate-spin"></div>
+            <img src="/img/Octa-logo.png" alt="Logo" className="h-12 w-12 absolute inset-0 m-auto" />
+          </div>
+          <div className="text-center">
+            <h2 className="text-white text-2xl font-black tracking-widest uppercase">Initializing System</h2>
+            <p className="text-red-600 font-bold text-sm tracking-[0.3em] animate-pulse">SETTING UP DASHBOARD...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#022142] via-blue-900 to-indigo-950 flex items-center justify-center px-4 py-12">
-      <div className="w-full max-w-lg">
-        {/* Logo / Brand */}
-        <div className="text-center mb-12">
-          <h1 className="text-5xl font-extrabold text-white tracking-tight">
-            Octavian Dynamics
-          </h1>
-          <p className="text-xl text-white/70 mt-3">
-            Enterprise Receipt System
-          </p>
+    <div className="min-h-screen bg-black flex items-center justify-center p-4">
+      <div className="bg-white rounded-[2.5rem] overflow-hidden max-w-lg w-full shadow-[0_0_50px_rgba(220,38,38,0.3)] border-b-8 border-red-600">
+        <div className="bg-red-600 py-8 text-center">
+          <img src="/img/Octa-logo.png" alt="Octavian Logo" className="h-16 w-16 mx-auto bg-white p-2 rounded-2xl mb-4" />
+          <h2 className="text-2xl font-black text-white uppercase tracking-tighter">Initial System Setup</h2>
         </div>
 
-        {/* Card */}
-        <div className="bg-white/95 backdrop-blur-xl rounded-3xl shadow-2xl border border-white/30 overflow-hidden">
-          <div className="px-10 pt-12 pb-10">
-            <div className="text-center mb-10">
-              <div className="inline-flex items-center justify-center w-20 h-20 bg-[#022142] rounded-full mb-6 shadow-lg">
-                <span className="text-4xl">🔐</span>
-              </div>
-              <h2 className="text-3xl font-bold text-[#022142]">Welcome!</h2>
-              <p className="text-gray-600 mt-3 text-lg">
-                Create the <strong>manager account</strong> to begin
-              </p>
+        <div className="p-8 sm:p-12">
+          <div className="mb-8 text-center">
+            <h3 className="text-3xl font-black text-black uppercase">Create Manager</h3>
+            <p className="text-gray-500 font-medium">Set up the primary administrative account.</p>
+          </div>
+
+          <div className="space-y-6">
+            <div>
+              <label className="block text-xs font-black text-gray-400 uppercase tracking-widest mb-2 ml-1">Manager Full Name</label>
+              <input
+                type="text"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                className="w-full px-6 py-4 bg-gray-50 border-2 border-gray-100 rounded-2xl focus:border-red-600 focus:bg-white outline-none transition-all font-bold text-gray-800"
+                placeholder="e.g. John Doe"
+              />
             </div>
 
-            <div className="space-y-7">
-              {/* Name Field */}
+            <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-semibold text-[#022142] mb-2 uppercase tracking-wider">
-                  Manager Name
-                </label>
-                <input
-                  type="text"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  className="w-full px-6 py-4 text-lg bg-gray-50 border border-gray-200 rounded-2xl focus:outline-none focus:ring-4 focus:ring-[#022142]/20 focus:border-[#022142] transition"
-                  placeholder="Enter your full name"
-                  autoFocus
-                />
-              </div>
-
-              {/* PIN Field */}
-              <div>
-                <label className="block text-sm font-semibold text-[#022142] mb-2 uppercase tracking-wider">
-                  4-Digit PIN
-                </label>
+                <label className="block text-xs font-black text-gray-400 uppercase tracking-widest mb-2 ml-1">Set 4-Digit PIN</label>
                 <input
                   type="password"
                   inputMode="numeric"
                   maxLength={4}
                   value={pin}
-                  onChange={(e) => setPin(e.target.value.slice(0, 4))}
-                  className="w-full px-6 py-5 text-4xl text-center tracking-widest font-mono bg-gray-50 border border-gray-200 rounded-2xl focus:outline-none focus:ring-4 focus:ring-[#022142]/20 focus:border-[#022142] transition"
+                  onChange={(e) => setPin(e.target.value.replace(/\D/g, ''))}
+                  className="w-full px-2 py-4 text-2xl text-center tracking-[0.5em] bg-gray-50 border-2 border-gray-100 rounded-2xl focus:border-red-600 focus:bg-white outline-none transition-all font-mono"
                   placeholder="••••"
                 />
               </div>
-
-              {/* Confirm PIN */}
               <div>
-                <label className="block text-sm font-semibold text-[#022142] mb-2 uppercase tracking-wider">
-                  Confirm PIN
-                </label>
+                <label className="block text-xs font-black text-gray-400 uppercase tracking-widest mb-2 ml-1">Confirm PIN</label>
                 <input
                   type="password"
                   inputMode="numeric"
                   maxLength={4}
                   value={confirmPin}
-                  onChange={(e) => setConfirmPin(e.target.value.slice(0, 4))}
-                  className="w-full px-6 py-5 text-4xl text-center tracking-widest font-mono bg-gray-50 border border-gray-200 rounded-2xl focus:outline-none focus:ring-4 focus:ring-[#022142]/20 focus:border-[#022142] transition"
+                  onChange={(e) => setConfirmPin(e.target.value.replace(/\D/g, ''))}
+                  className="w-full px-2 py-4 text-2xl text-center tracking-[0.5em] bg-gray-50 border-2 border-gray-100 rounded-2xl focus:border-red-600 focus:bg-white outline-none transition-all font-mono"
                   placeholder="••••"
                 />
               </div>
             </div>
 
-            {/* Error Message */}
             {error && (
-              <div className="mt-6 p-4 bg-red-50 border border-red-200 rounded-2xl">
-                <p className="text-center text-red-700 font-medium">{error}</p>
+              <div className="p-4 bg-red-50 border-l-4 border-red-600 rounded-r-xl">
+                <p className="text-red-700 text-sm font-bold">{error}</p>
               </div>
             )}
 
-            {/* Submit Button */}
             <button
               onClick={handleSubmit}
-              disabled={isSubmitting || !name.trim() || pin.length !== 4 || pin !== confirmPin}
-              className="w-full mt-10 px-8 py-5 bg-[#022142] text-white text-xl font-bold rounded-2xl hover:bg-[#053f7c] disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 shadow-xl hover:shadow-2xl transform hover:-translate-y-1"
+              disabled={isSubmitting || !name.trim() || pin.length !== 4}
+              className="w-full py-5 bg-black text-white text-xl font-black rounded-2xl hover:bg-red-700 disabled:opacity-30 disabled:hover:bg-black transition-all duration-300 shadow-xl uppercase tracking-tighter flex items-center justify-center gap-3"
             >
-              {isSubmitting ? 'Creating Account...' : 'Create Manager Account'}
+              {isSubmitting ? (
+                <>
+                  <div className="h-5 w-5 border-2 border-white/30 border-t-white animate-spin rounded-full"></div>
+                  Processing...
+                </>
+              ) : 'Finish Setup'}
             </button>
-
-            <p className="text-center text-gray-500 text-sm mt-8">
-              This account will have full administrative access.
-            </p>
           </div>
         </div>
       </div>

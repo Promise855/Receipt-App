@@ -1,222 +1,185 @@
 // src/components/InvoiceHeaderForm.tsx
 
-import { useForm, FormProvider } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
-import { useInvoiceStore } from '../stores/useInvoiceStore';
-import { Listbox } from '@headlessui/react';
-import { useEffect, useState } from 'react';
+import { useFormContext } from 'react-hook-form';
+import { Listbox, Transition } from '@headlessui/react';
 import DatePicker from 'react-date-picker';
+import { Fragment } from 'react';
 import 'react-date-picker/dist/DatePicker.css';
 import 'react-calendar/dist/Calendar.css';
 
-const invoiceHeaderSchema = z.object({
-  customerName: z.string().min(2, 'Name must be at least 2 characters'),
-  phoneNumber: z
-    .string()
-    .regex(/^(\+?\d{10,15})$/, 'Enter a valid phone number (e.g., +2349155743615)')
-    .optional()
-    .or(z.literal('')),
-  invoiceNumber: z
-    .string()
-    .min(5, 'Invoice number must be at least 5 characters')
-    .max(20)
-    .regex(/^[A-Z0-9-]+$/, 'Only uppercase letters, numbers, and hyphens allowed'),
-  date: z.string().min(1, 'Date is required'),
-  paymentMode: z.enum(['Bank Transfer', 'Cash', 'Card Payment', 'Not Paid']),
-});
-
-type InvoiceHeaderFormData = z.infer<typeof invoiceHeaderSchema>;
-
-const paymentModes = [
-  'Bank Transfer',
-  'Cash',
-  'Card Payment',
-  'Not Paid',
-] as const;
-
 export default function InvoiceHeaderForm() {
-  const { setCustomerDetails, setInvoiceMeta } = useInvoiceStore();
+  const { register, setValue, watch, formState: { errors } } = useFormContext();
+  const paymentMode = watch('paymentMode') || 'Bank Transfer';
+  const dateValue = watch('date');
 
-  const [selectedPaymentMode, setSelectedPaymentMode] = useState<'Bank Transfer' | 'Cash' | 'Card Payment' | 'Not Paid'>('Cash');
-  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+  const modes = ['Bank Transfer', 'Cash', 'Card Payment', 'Not Paid'];
 
-  const today = new Date().toISOString().split('T')[0];
-
-  const methods = useForm<InvoiceHeaderFormData>({
-    resolver: zodResolver(invoiceHeaderSchema),
-    defaultValues: {
-      customerName: '',
-      phoneNumber: '',
-      invoiceNumber: '',
-      date: today,
-      paymentMode: 'Cash',
-    },
-  });
-
-  const { register, formState: { errors }, setValue } = methods;
-
-  useEffect(() => {
-    setInvoiceMeta((prev) => ({
-      ...prev,
-      paymentMode: selectedPaymentMode,
-    }));
-  }, [selectedPaymentMode, setInvoiceMeta]);
-
-  const handleDateChange = (value: Date | null) => {
-    if (value instanceof Date && !isNaN(value.getTime())) {
-      const formatted = value.toISOString().split('T')[0];
-      setValue('date', formatted, { shouldValidate: true });
-      setInvoiceMeta((prev) => ({ ...prev, date: formatted }));
-      setSelectedDate(value);
-    } else {
-      setValue('date', today, { shouldValidate: true });
-      setInvoiceMeta((prev) => ({ ...prev, date: today }));
+  const handleDateChange = (date: any) => {
+    if (!date) {
+      setValue('date', '');
+      return;
     }
+    const d = new Date(date);
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    setValue('date', `${year}-${month}-${day}`);
   };
 
   return (
-    <div className="max-w-3xl mx-auto">
-      <h2 className="text-center mb-8 text-3xl font-medium text-[#041a33]">
-        Receipt Details
-      </h2>
+    <div className="py-10 border-b border-gray-100">
+      <div className="mb-10">
+        <h3 className="text-[10px] font-black text-red-600 uppercase tracking-[0.4em] mb-1">
+          Customer & Transaction Details
+        </h3>
+        <div className="h-1 w-12 bg-black"></div>
+      </div>
 
-      {/* FormProvider wraps everything so ActionBar can use useFormContext */}
-      
-        <form className="space-y-6">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 lg:gap-8">
-            {/* Customer Name */}
-            <div>
-              <label className="block text-base sm:text-lg font-bold text-[#022142] mb-2">
-                Customer Name:
-              </label>
-              <input
-                {...register('customerName')}
-                onChange={(e) => {
-                  register('customerName').onChange(e);
-                  setCustomerDetails({ customerName: e.target.value });
-                }}
-                type="text"
-                className="w-full px-5 py-4 text-base sm:text-lg bg-white border-2 border-[#ced4da] rounded-xl focus:border-[#022142] focus:outline-none transition"
-                placeholder="Enter customer's full name"
-              />
-              {errors.customerName && (
-                <p className="mt-1 text-sm text-red-600">{errors.customerName.message}</p>
-              )}
-            </div>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-x-16 gap-y-12">
+        {/* Customer Name */}
+        <div className="relative group">
+          <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Customer Name</label>
+          <input
+            {...register('customerName', { required: 'Name is required' })}
+            placeholder="ENTER FULL NAME"
+            className={`w-full bg-transparent border-b-2 py-2 text-lg font-bold outline-none transition-all uppercase ${
+              errors.customerName ? 'border-red-600' : 'border-gray-100 focus:border-black'
+            }`}
+          />
+        </div>
 
-            {/* Phone Number */}
-            <div>
-              <label className="block text-base sm:text-lg font-bold text-[#022142] mb-2">
-                Phone Number:
-              </label>
-              <input
-                {...register('phoneNumber')}
-                onBlur={(e) => setCustomerDetails({ phoneNumber: e.target.value })}
-                type="text"
-                className="w-full px-5 py-4 text-base sm:text-lg bg-white border-2 border-[#ced4da] rounded-xl focus:border-[#022142] focus:outline-none transition"
-                placeholder="+2349155743615"
-              />
-              {errors.phoneNumber && (
-                <p className="mt-1 text-sm text-red-600">{errors.phoneNumber.message}</p>
-              )}
-            </div>
+        {/* Phone Number */}
+        <div className="relative group">
+          <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Phone Number</label>
+          <input
+            {...register('phoneNumber')}
+            type="tel"
+            placeholder="+234..."
+            className="w-full bg-transparent border-b-2 border-gray-100 focus:border-black py-2 text-lg font-bold outline-none transition-all"
+          />
+        </div>
 
-            {/* Invoice Number */}
-            <div>
-              <label className="block text-base sm:text-lg font-bold text-[#022142] mb-2">
-                INVOICE NO:
-              </label>
-              <input
-                {...register('invoiceNumber')}
-                onChange={(e) => {
-                  const value = e.target.value.toUpperCase();
-                  e.target.value = value;
-                  register('invoiceNumber').onChange(e);
-                  setInvoiceMeta((prev) => ({ ...prev, invoiceNumber: value }));
-                }}
-                type="text"
-                className="w-full px-5 py-4 text-base sm:text-lg bg-white border-2 border-[#ced4da] rounded-xl focus:border-[#022142] focus:outline-none transition uppercase"
-                placeholder="INV-001"
-              />
-              {errors.invoiceNumber && (
-                <p className="mt-1 text-sm text-red-600">{errors.invoiceNumber.message}</p>
-              )}
-            </div>
+        {/* Invoice Number */}
+        <div className="relative group">
+          <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Invoice No.</label>
+          <input
+            {...register('invoiceNumber')}
+            placeholder="INV-0000"
+            className="w-full bg-transparent border-b-2 border-gray-100 focus:border-black py-2 text-lg font-mono font-bold outline-none transition-all uppercase"
+          />
+        </div>
 
-            {/* Date */}
-            <div>
-              <label className="block text-base sm:text-lg font-bold text-[#022142] mb-2">
-                Date:
-              </label>
-              <DatePicker
-                onChange={handleDateChange}
-                value={selectedDate}
-                format="dd/MM/yyyy"
-                clearIcon={null}
-                calendarIcon={
-                  <svg className="w-6 h-6 text-[#022142]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                  </svg>
-                }
-                className="w-full custom-datepicker"
-              />
-              {errors.date && (
-                <p className="mt-1 text-sm text-red-600">{errors.date.message}</p>
-              )}
-            </div>
-
-            {/* Payment Mode */}
-            <div>
-              <label className="block text-base sm:text-lg font-bold text-[#022142] mb-2">
-                Payment Mode:
-              </label>
-
-              <Listbox value={selectedPaymentMode} onChange={setSelectedPaymentMode}>
-                <div className="relative">
-                  <Listbox.Button className="relative w-full cursor-pointer rounded-xl bg-white px-5 py-4 pr-12 text-left text-base sm:text-lg border-2 border-[#ced4da] focus:border-[#022142] focus:outline-none focus:ring-4 focus:ring-[#022142]/20 transition-all duration-200 hover:border-[#022142]/70">
-                    <span className="block truncate">{selectedPaymentMode}</span>
-                    <span className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-5">
-                      <svg className="h-6 w-6 text-[#022142]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                      </svg>
-                    </span>
-                  </Listbox.Button>
-
-                  <Listbox.Options className="absolute mt-2 max-h-60 w-full overflow-auto rounded-xl bg-white py-2 text-base shadow-2xl ring-1 ring-black ring-opacity-5 focus:outline-none z-10">
-                    {paymentModes.map((mode) => (
-                      <Listbox.Option
-                        key={mode}
-                        value={mode}
-                        className={({ active }) =>
-                          `relative cursor-pointer select-none py-3 pl-10 pr-4 transition-all ${
-                            active ? 'bg-[#022142] text-white' : 'text-gray-900'
-                          }`
-                        }
-                      >
-                        {({ selected }) => (
-                          <>
-                            <span className={`block truncate ${selected ? 'font-bold' : 'font-normal'}`}>
-                              {mode}
-                            </span>
-                            {selected && (
-                              <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-white">
-                                <svg className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                                </svg>
-                              </span>
-                            )}
-                          </>
-                        )}
-                      </Listbox.Option>
-                    ))}
-                  </Listbox.Options>
-                </div>
-              </Listbox>
-            </div>
+        {/* Transaction Date */}
+        <div className="relative group">
+          <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Date of Issue</label>
+          <div className="premium-datepicker">
+            <DatePicker
+              onChange={handleDateChange}
+              value={dateValue ? new Date(dateValue) : new Date()}
+              clearIcon={null}
+              calendarIcon={
+                <svg className="w-4 h-4 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+              }
+              format="y-MM-dd"
+              className="w-full"
+            />
           </div>
-        </form>
-      
+        </div>
+
+        {/* Payment Mode */}
+        <div className="relative group">
+          <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Payment Mode</label>
+          <Listbox value={paymentMode} onChange={(val) => setValue('paymentMode', val)}>
+            <div className="relative">
+              <Listbox.Button className="w-full text-left bg-transparent border-b-2 border-gray-100 focus:border-black py-2 text-lg font-bold outline-none transition-all flex justify-between items-center">
+                <span className="truncate uppercase">{paymentMode}</span>
+                <span className="text-[8px] text-red-600">▼</span>
+              </Listbox.Button>
+              
+              <Transition
+                as={Fragment}
+                enter="transition ease-out duration-100"
+                enterFrom="opacity-0 scale-95"
+                enterTo="opacity-100 scale-100"
+                leave="transition ease-in duration-75"
+                leaveFrom="opacity-100 scale-100"
+                leaveTo="opacity-0 scale-95"
+              >
+                <Listbox.Options className="absolute mt-2 w-full bg-white border-2 border-black rounded-xl shadow-2xl z-[100] overflow-y-auto max-h-60 outline-none">
+                  {modes.map((mode) => (
+                    <Listbox.Option
+                      key={mode}
+                      value={mode}
+                      className={({ active, selected }) =>
+                        `px-5 py-3 cursor-pointer text-xs font-black uppercase tracking-widest transition-all ${
+                          active ? 'bg-black text-white' : selected ? 'text-red-600 bg-gray-50' : 'text-gray-600'
+                        }`
+                      }
+                    >
+                      {mode}
+                    </Listbox.Option>
+                  ))}
+                </Listbox.Options>
+              </Transition>
+            </div>
+          </Listbox>
+        </div>
+      </div>
+
+      <style>{`
+        /* FIX FOR JUMPING UI & SCROLL LOCK */
+        /* This prevents Headless UI from injecting styles into the body */
+        :root {
+          --scrollbar-width: 0px; 
+        }
+
+        html, body {
+          overflow: auto !important;
+          padding-right: 0 !important;
+          margin-right: 0 !important;
+          height: auto !important;
+          position: relative !important;
+        }
+
+        /* --- CALENDAR POPUP BRANDING --- */
+        .react-calendar {
+          border: 2px solid #000 !important;
+          border-radius: 1rem !important;
+          box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.4) !important;
+          padding: 8px !important;
+          background: white !important;
+          z-index: 1000 !important;
+        }
+
+        .react-calendar__tile--active {
+          background: #dc2626 !important;
+          color: white !important;
+          border-radius: 8px !important;
+        }
+
+        .react-calendar__tile--now {
+          background: #fef2f2 !important;
+          color: #dc2626 !important;
+          border-radius: 8px !important;
+        }
+
+        .react-calendar__navigation button:enabled:hover {
+          background-color: #f3f4f6 !important;
+          border-radius: 8px !important;
+        }
+
+        /* DatePicker Underline */
+        .premium-datepicker .react-date-picker__wrapper {
+          border: none !important;
+          border-bottom: 2px solid #f3f4f6 !important;
+          padding-bottom: 8px;
+        }
+        .premium-datepicker:focus-within .react-date-picker__wrapper {
+          border-bottom-color: #000 !important;
+        }
+      `}</style>
     </div>
   );
 }

@@ -1,69 +1,66 @@
 // src/pages/StaffLogin.tsx
 
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { db } from '../lib/db';
 import PinLoginModal from '../components/PinLoginModal';
 
-export default function StaffLogin() {
-  const [staffList, setStaffList] = useState<Staff[]>([]);
-  const [selectedStaff, setSelectedStaff] = useState<Staff | null>(null);
+type Props = {
+  onLoginSuccess: () => void;
+};
+
+export default function StaffLogin({ onLoginSuccess }: Props) {
+  const [staffList, setStaffList] = useState<any[]>([]);
+  const [selectedStaff, setSelectedStaff] = useState<any | null>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    loadStaff();
+    const fetchStaff = async () => {
+      const allStaff = await db.staff.toArray();
+      setStaffList(allStaff);
+      setLoading(false);
+    };
+    fetchStaff();
   }, []);
 
-  const loadStaff = async () => {
-    const all = await db.staff.orderBy('name').toArray();
-    setStaffList(all);
-  };
-
-  const handlePinSuccess = () => {
-    setSelectedStaff(null);
-    // Redirect to main app
-    window.location.href = '/';
-  };
+  if (loading) return null; // Let App.tsx handle initial loading
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-900 via-[#022142] to-blue-950 flex items-center justify-center p-6">
-      <div className="bg-white/10 backdrop-blur-xl rounded-3xl p-10 max-w-4xl w-full shadow-2xl border border-white/20">
-        <div className="text-center mb-10">
-          <h1 className="text-5xl font-extrabold text-white mb-4 tracking-tight">
-            Octavian Dynamics
-          </h1>
-          <p className="text-xl text-white/80">
-            Select your name to begin shift
-          </p>
+    <div className="min-h-screen bg-white flex flex-col items-center justify-center p-6">
+      <div className="mb-12 text-center">
+        <div className="inline-block p-4 bg-black rounded-3xl mb-6 shadow-2xl">
+          <img src="/img/Octa-logo.png" alt="Logo" className="h-16 w-16 object-contain" />
         </div>
-
-        {/* Staff Grid */}
-        {staffList.length > 0 ? (
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-6">
-            {staffList.map((staff) => (
-              <button
-                key={staff.id}
-                onClick={() => setSelectedStaff(staff)}
-                className="group bg-white/15 hover:bg-white/25 backdrop-blur-md rounded-2xl p-8 transition-all duration-300 transform hover:scale-105 hover:shadow-2xl border border-white/20"
-              >
-                <div className="text-6xl mb-4 group-hover:animate-bounce">👤</div>
-                <h3 className="text-xl font-bold text-white mb-1">{staff.name}</h3>
-                <p className="text-sm text-white/70 capitalize">{staff.role}</p>
-              </button>
-            ))}
-          </div>
-        ) : (
-          <div className="text-center py-16">
-            <p className="text-2xl text-white/80">Loading staff...</p>
-          </div>
-        )}
+        <h1 className="text-4xl font-black text-black tracking-tighter">
+          OCTAVIAN <span className="text-red-600">DYNAMICS</span>
+        </h1>
+        <p className="text-gray-400 font-bold uppercase tracking-[0.3em] text-[10px] mt-3">Receipt Management System</p>
       </div>
 
-      {/* PIN Login Modal */}
+      <div className="max-w-5xl w-full">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+          {staffList.map((staff) => (
+            <button
+              key={staff.id}
+              onClick={() => setSelectedStaff(staff)}
+              className="group bg-white border-2 border-gray-100 p-8 rounded-[2.5rem] text-center transition-all hover:border-red-600 hover:shadow-xl active:scale-95"
+            >
+              <div className="w-20 h-20 bg-black group-hover:bg-red-600 rounded-3xl mx-auto mb-6 flex items-center justify-center text-white text-3xl font-black transition-colors">
+                {staff.name.charAt(0).toUpperCase()}
+              </div>
+              <h3 className="text-black font-black text-xl truncate">{staff.name}</h3>
+              <div className="inline-block px-4 py-1 bg-gray-50 rounded-full mt-2">
+                <p className="text-gray-400 font-black text-[9px] uppercase tracking-widest">{staff.role}</p>
+              </div>
+            </button>
+          ))}
+        </div>
+      </div>
+
       {selectedStaff && (
-        <PinLoginModal
-          staffId={selectedStaff.id!}
-          staffName={selectedStaff.name}
-          onSuccess={handlePinSuccess}
-          onCancel={() => setSelectedStaff(null)}
+        <PinLoginModal 
+          staff={selectedStaff} 
+          onClose={() => setSelectedStaff(null)}
+          onSuccess={onLoginSuccess}
         />
       )}
     </div>
