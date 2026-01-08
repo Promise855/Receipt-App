@@ -1,8 +1,8 @@
 // src/components/PastReceiptsModal.tsx
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, Fragment } from 'react';
 import { db } from '../lib/db';
-import { Listbox } from '@headlessui/react';
+import { Listbox, Transition } from '@headlessui/react';
 
 type ReceiptSummary = {
   id: number;
@@ -18,12 +18,12 @@ type Props = {
 };
 
 const sortOptions = [
-  { id: 'date-desc', name: 'Date (Newest First)' },
-  { id: 'date-asc', name: 'Date (Oldest First)' },
-  { id: 'invoice', name: 'Invoice Number' },
+  { id: 'date-desc', name: 'Newest First' },
+  { id: 'date-asc', name: 'Oldest First' },
+  { id: 'invoice', name: 'By Invoice #' },
 ] as const;
 
-const MAX_RECEIPTS = 200; // Limit to prevent slow rendering
+const MAX_RECEIPTS = 200;
 
 export default function PastReceiptsModal({ onClose }: Props) {
   const [receipts, setReceipts] = useState<ReceiptSummary[]>([]);
@@ -36,7 +36,6 @@ export default function PastReceiptsModal({ onClose }: Props) {
     const loadReceipts = async () => {
       try {
         setLoading(true);
-        // Load only recent receipts to avoid performance issues
         const all = await db.receipts
           .orderBy('timestamp')
           .reverse()
@@ -59,22 +58,16 @@ export default function PastReceiptsModal({ onClose }: Props) {
         setLoading(false);
       }
     };
-
     loadReceipts();
   }, []);
 
-  // Memoize filtered and sorted results to avoid expensive recalculations
   const filteredAndSorted = useMemo(() => {
     const searchLower = search.toLowerCase();
-
-    const filtered = receipts.filter(r => {
-      return (
-        r.invoiceNumber.toLowerCase().includes(searchLower) ||
-        r.customerName.toLowerCase().includes(searchLower) ||
-        r.timestamp.slice(0, 10).includes(search) ||
-        r.generatedByName.toLowerCase().includes(searchLower)
-      );
-    });
+    const filtered = receipts.filter(r => 
+      r.invoiceNumber.toLowerCase().includes(searchLower) ||
+      r.customerName.toLowerCase().includes(searchLower) ||
+      r.generatedByName?.toLowerCase().includes(searchLower)
+    );
 
     return [...filtered].sort((a, b) => {
       if (selectedSort.id === 'date-desc') return b.timestamp.localeCompare(a.timestamp);
@@ -85,202 +78,139 @@ export default function PastReceiptsModal({ onClose }: Props) {
   }, [receipts, search, selectedSort]);
 
   const handleView = async (id: number) => {
-    try {
-      const fullReceipt = await db.receipts.get(id);
-      if (fullReceipt) {
-        localStorage.setItem('currentReceipt', JSON.stringify(fullReceipt));
-        window.open('/receipt-preview', '_blank');
-      }
-    } catch (error) {
-      console.error('Error viewing receipt:', error);
-      alert('Failed to open receipt');
+    const fullReceipt = await db.receipts.get(id);
+    if (fullReceipt) {
+      localStorage.setItem('currentReceipt', JSON.stringify(fullReceipt));
+      window.open('/receipt-preview', '_blank');
     }
-  };
-
-  const openDeleteConfirm = (id: number) => {
-    setDeleteId(id);
-  };
-
-  const confirmDelete = async () => {
-    if (deleteId === null) return;
-
-    try {
-      await db.receipts.delete(deleteId);
-      setReceipts(prev => prev.filter(r => r.id !== deleteId));
-      setDeleteId(null);
-    } catch (error) {
-      console.error('Delete failed:', error);
-      alert('Failed to delete receipt');
-    }
-  };
-
-  const cancelDelete = () => {
-    setDeleteId(null);
   };
 
   return (
-    <div className="glass-backdrop px-4">
-      <div className="glass-modal max-w-5xl w-full max-h-[90vh] flex flex-col">
-        {/* Header */}
-        <div className="flex-shrink-0 px-6 py-6 border-b border-white/30">
-          <h2 className="text-2xl sm:text-3xl font-bold text-[#022142] text-center">
-            Past Receipts
-          </h2>
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6 bg-black/80 backdrop-blur-sm">
+      <div className="bg-white rounded-[2.5rem] w-full max-w-5xl h-[90vh] flex flex-col overflow-hidden shadow-2xl border-4 border-black">
+        
+        {/* TOP BRANDED BAR */}
+        <div className="bg-black text-white px-8 py-6 flex justify-between items-center border-b-4 border-red-600">
+          <div>
+            <h2 className="text-2xl font-black uppercase tracking-tighter">
+              Archive <span className="text-red-600">Vault</span>
+            </h2>
+            <p className="text-[10px] text-gray-400 font-bold uppercase tracking-[0.3em]">Transaction History</p>
+          </div>
+          <button onClick={onClose} className="p-2 hover:bg-red-600 rounded-lg transition-colors">
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
         </div>
 
-        {/* Search & Sort */}
-        <div className="flex-shrink-0 px-6 py-6 space-y-4 sm:space-y-0 sm:flex sm:gap-6">
-          <div className="flex-1">
+        {/* CONTROLS */}
+        <div className="p-8 grid grid-cols-1 md:grid-cols-3 gap-6 bg-gray-50 border-b border-gray-100">
+          <div className="md:col-span-2 relative group">
             <input
               type="text"
-              placeholder="Search by invoice, customer, date, or staff..."
+              placeholder="SEARCH BY CLIENT OR INVOICE..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full px-6 py-4 bg-white/90 text-gray-900 rounded-xl border-2 border-[#ced4da] focus:border-[#022142] focus:outline-none focus:ring-4 focus:ring-[#022142]/20 transition text-base"
+              className="w-full bg-white border-2 border-gray-200 focus:border-black py-4 px-6 rounded-2xl text-xs font-black uppercase tracking-widest outline-none transition-all shadow-sm"
             />
+            <div className="absolute right-6 top-1/2 -translate-y-1/2 text-gray-300">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+            </div>
           </div>
 
-          <div className="w-full sm:w-64">
-            <Listbox value={selectedSort} onChange={setSelectedSort}>
-              <div className="relative">
-                <Listbox.Button className="relative w-full cursor-pointer rounded-xl bg-white px-6 py-4 pr-12 text-left text-base bg-white/90 border-2 border-[#ced4da] focus:border-[#022142] focus:outline-none focus:ring-4 focus:ring-[#022142]/20 transition-all duration-200 hover:border-[#022142]/70">
-                  <span className="block truncate">{selectedSort.name}</span>
-                  <span className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-5">
-                    <svg className="h-6 w-6 text-[#022142]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                    </svg>
-                  </span>
-                </Listbox.Button>
-
-                <Listbox.Options className="absolute mt-2 w-full overflow-auto rounded-xl bg-white py-2 text-base shadow-2xl ring-1 ring-black ring-opacity-5 focus:outline-none z-10">
-                  {sortOptions.map((option) => (
-                    <Listbox.Option
-                      key={option.id}
-                      value={option}
-                      className={({ active }) =>
-                        `relative cursor-pointer select-none py-3 pl-10 pr-4 transition-all ${
-                          active ? 'bg-[#022142] text-white' : 'text-gray-900'
-                        }`
-                      }
-                    >
-                      {({ selected }) => (
-                        <>
-                          <span className={`block truncate ${selected ? 'font-bold' : 'font-normal'}`}>
-                            {option.name}
-                          </span>
-                          {selected && (
-                            <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-white">
-                              <svg className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                                <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                              </svg>
-                            </span>
-                          )}
-                        </>
-                      )}
-                    </Listbox.Option>
+          <Listbox value={selectedSort} onChange={setSelectedSort}>
+            <div className="relative">
+              <Listbox.Button className="w-full bg-white border-2 border-gray-200 py-4 px-6 rounded-2xl text-xs font-black uppercase tracking-widest flex justify-between items-center">
+                {selectedSort.name}
+                <span className="text-red-600 text-[10px]">▼</span>
+              </Listbox.Button>
+              <Transition as={Fragment} leave="transition duration-100" leaveFrom="opacity-100" leaveTo="opacity-0">
+                <Listbox.Options className="absolute mt-2 w-full bg-white border-2 border-black rounded-xl shadow-2xl z-[110] overflow-hidden outline-none">
+                  {sortOptions.map((opt) => (
+                    <Listbox.Option key={opt.id} value={opt} className={({ active }) => `px-6 py-4 cursor-pointer text-[10px] font-black uppercase ${active ? 'bg-black text-white' : 'text-gray-600'}`}>{opt.name}</Listbox.Option>
                   ))}
                 </Listbox.Options>
-              </div>
-            </Listbox>
-          </div>
+              </Transition>
+            </div>
+          </Listbox>
         </div>
 
-        {/* Receipt List */}
-        <div className="flex-1 overflow-y-auto px-6 pb-6">
+        {/* LIST AREA */}
+        <div className="flex-1 overflow-y-auto p-8 space-y-4 custom-scrollbar">
           {loading ? (
-            <div className="text-center py-16">
-              <div className="inline-block animate-spin rounded-full h-12 w-12 border-t-4 border-[#022142] border-solid"></div>
-              <p className="text-xl text-gray-600 mt-6">Loading receipts...</p>
+            <div className="h-full flex flex-col items-center justify-center gap-4">
+              <div className="w-12 h-12 border-4 border-red-600 border-t-transparent rounded-full animate-spin"></div>
+              <p className="text-[10px] font-black uppercase tracking-[0.3em] text-gray-400">Syncing database...</p>
             </div>
           ) : filteredAndSorted.length === 0 ? (
-            <div className="text-center py-16">
-              <p className="text-xl text-gray-600">No receipts found</p>
+            <div className="h-full flex flex-col items-center justify-center opacity-20">
+              <svg className="w-24 h-24 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" /></svg>
+              <p className="text-sm font-black uppercase tracking-widest">No Records Found</p>
             </div>
           ) : (
-            <div className="space-y-4">
-              {filteredAndSorted.map(r => (
-                <div
-                  key={r.id}
-                  className="bg-white/70 backdrop-blur-sm rounded-2xl p-6 border border-white/40 shadow-lg hover:shadow-xl transition"
-                >
-                  <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
-                    <div className="flex-1">
-                      <div className="font-bold text-xl text-[#022142]">
-                        #{r.invoiceNumber}
-                      </div>
-                      <div className="text-lg text-gray-800 mt-1">
-                        {r.customerName}
-                      </div>
-                      <div className="text-sm text-gray-600 mt-2 space-y-1">
-                        <div>{new Date(r.timestamp).toLocaleString()}</div>
-                        <div>By: <span className="font-medium">{r.generatedByName}</span></div>
-                        <div className="font-bold text-[#022142]">
-                          Total: ₦{r.total.toLocaleString('en-NG', { minimumFractionDigits: 2 })}
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="flex gap-3 sm:flex-col lg:flex-row">
-                      <button
-                        onClick={() => handleView(r.id)}
-                        className="flex-1 px-6 py-3 bg-[#022142] text-white rounded-xl hover:bg-[#053f7c] transition font-medium shadow-md"
-                      >
-                        View
-                      </button>
-                      <button
-                        onClick={() => openDeleteConfirm(r.id)}
-                        className="flex-1 px-6 py-3 bg-red-600 text-white rounded-xl hover:bg-red-700 transition font-medium shadow-md"
-                      >
-                        Delete
-                      </button>
-                    </div>
+            filteredAndSorted.map(r => (
+              <div key={r.id} className="group bg-white border border-gray-100 hover:border-black rounded-2xl p-6 transition-all hover:shadow-xl flex flex-col sm:flex-row justify-between items-center gap-6">
+                <div className="flex-1 w-full">
+                  <div className="flex items-center gap-3 mb-2">
+                    <span className="text-[10px] font-black bg-gray-100 text-gray-500 px-2 py-1 rounded">#{r.invoiceNumber}</span>
+                    <span className="text-[10px] font-black text-red-600 uppercase tracking-widest">
+                        {new Date(r.timestamp).toLocaleDateString()}
+                    </span>
+                  </div>
+                  <h4 className="text-lg font-black uppercase tracking-tight text-black">{r.customerName}</h4>
+                  <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mt-1">Processed By: {r.generatedByName}</p>
+                </div>
+                
+                <div className="flex items-center gap-8 w-full sm:w-auto border-t sm:border-t-0 pt-4 sm:pt-0">
+                  <div className="text-right">
+                    <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1">Total Amount</p>
+                    <p className="text-xl font-black text-black">₦{r.total.toLocaleString()}</p>
+                  </div>
+                  <div className="flex gap-2">
+                    <button onClick={() => handleView(r.id)} className="bg-black text-white p-4 rounded-xl hover:bg-red-600 transition-colors shadow-lg">
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+                    </button>
+                    <button onClick={() => setDeleteId(r.id)} className="bg-gray-50 text-gray-400 p-4 rounded-xl hover:bg-red-50 hover:text-red-600 transition-colors">
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                    </button>
                   </div>
                 </div>
-              ))}
-            </div>
+              </div>
+            ))
           )}
-        </div>
-
-        {/* Close Button */}
-        <div className="flex-shrink-0 px-6 py-6 border-t border-white/30 text-center">
-          <button
-            onClick={onClose}
-            className="px-12 py-4 bg-gray-600 text-white text-xl font-bold rounded-xl hover:bg-gray-700 transition shadow-lg"
-          >
-            Close
-          </button>
         </div>
       </div>
 
-      {/* Delete Confirmation Modal */}
+      {/* DELETE CONFIRMATION MODAL */}
       {deleteId !== null && (
-        <div className="fixed inset-0 glass-backdrop z-60 flex items-center justify-center px-4">
-          <div className="bg-white rounded-3xl p-10 max-w-md w-full shadow-2xl border border-white/50">
+        <div className="fixed inset-0 z-[200] flex items-center justify-center p-6 bg-black/90 backdrop-blur-md">
+          <div className="bg-white rounded-[2rem] p-10 max-w-sm w-full border-2 border-black shadow-2xl animate-in fade-in zoom-in duration-200">
             <div className="text-center mb-8">
-              <div className="text-6xl mb-4">🗑️</div>
-              <h3 className="text-2xl font-bold text-[#022142]">Delete Receipt?</h3>
-              <p className="text-gray-700 mt-4">
-                This action <strong>cannot be undone</strong>. The receipt will be permanently deleted.
-              </p>
+              <div className="w-20 h-20 bg-red-50 text-red-600 rounded-full flex items-center justify-center mx-auto mb-6">
+                <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+              </div>
+              <h3 className="text-xl font-black uppercase tracking-tight text-black">Destroy Record?</h3>
+              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-2">This action is permanent and cannot be reversed.</p>
             </div>
-
-            <div className="flex gap-6">
-              <button
-                onClick={cancelDelete}
-                className="flex-1 px-6 py-3 bg-gray-500 text-white text-xl font-bold rounded-xl hover:bg-gray-600 transition"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={confirmDelete}
-                className="flex-1 px-6 py-3 bg-red-600 text-white text-xl font-bold rounded-xl hover:bg-red-700 transition shadow-lg"
-              >
-                Delete
-              </button>
+            <div className="flex flex-col gap-3">
+              <button onClick={async () => {
+                await db.receipts.delete(deleteId);
+                setReceipts(prev => prev.filter(r => r.id !== deleteId));
+                setDeleteId(null);
+              }} className="w-full py-4 bg-red-600 text-white font-black uppercase tracking-widest rounded-xl hover:bg-red-700 transition-colors shadow-lg">Confirm Delete</button>
+              <button onClick={() => setDeleteId(null)} className="w-full py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest hover:text-black transition-colors">Go Back</button>
             </div>
           </div>
         </div>
       )}
+
+      <style>{`
+        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #e5e7eb; border-radius: 10px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #000; }
+      `}</style>
     </div>
   );
 }
